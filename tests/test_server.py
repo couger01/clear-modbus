@@ -192,6 +192,24 @@ async def test_handle_request_converts_invalid_value_to_exception_response() -> 
 
 
 @pytest.mark.asyncio
+async def test_handle_request_converts_unsupported_request_to_exception_response() -> None:
+    class UnsupportedRequest:
+        function_code = 0x02
+
+        def encode(self) -> bytes:
+            return bytes.fromhex("02 00 00 00 01")
+
+    server = ModbusTcpServer()
+
+    response = await server.handle_request(UnsupportedRequest())
+
+    assert response == ExceptionResponse(
+        function_code=0x02,
+        exception_code=ExceptionCode.ILLEGAL_FUNCTION,
+    )
+
+
+@pytest.mark.asyncio
 async def test_handle_client_reads_request_and_writes_response_frame() -> None:
     datastore = MemoryDataStore(
         holding_registers=[RegisterBlock(start_address=0, values=[10, 20])]

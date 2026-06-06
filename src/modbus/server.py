@@ -17,9 +17,9 @@ from modbus.datastore import InvalidAddressError, MemoryDataStore, ReadOnlyDataB
 from modbus.datastore.base import ModbusDataStore
 from modbus.datastore.errors import InvalidValueError
 from modbus.exceptions import ModbusPDUError
-from modbus.protocol.functions import ExceptionCode, FunctionCode
+from modbus.protocol.functions import ExceptionCode
 from modbus.protocol.mbap import MBAPHeader, ModbusTCPFrame
-from modbus.protocol.pdu import RequestPDU, ResponsePDU
+from modbus.protocol.pdu import RequestPDU, ResponsePDU, decode_request_pdu
 
 
 class ModbusTcpServer:
@@ -78,7 +78,7 @@ class ModbusTcpServer:
 
                 try:
                     pdu = await reader.readexactly(header.length - 1)
-                    request = _decode_request_pdu(pdu)
+                    request = decode_request_pdu(pdu)
                     response = await self.handle_request(request)
                     response_pdu = response.encode()
                 except asyncio.IncompleteReadError:
@@ -140,11 +140,9 @@ class ModbusTcpServer:
                         count=len(values),
                     )
                 case _:
-                    # TODO: Consider returning ExceptionResponse(..., ILLEGAL_FUNCTION)
-                    # so unsupported PDUs are encoded as Modbus exception responses
-                    # instead of escaping as Python errors.
-                    raise ModbusPDUError(
-                        f"Unsupported request type: {type(request).__name__}"
+                    return ExceptionResponse(
+                        function_code=request.function_code,
+                        exception_code=ExceptionCode.ILLEGAL_FUNCTION,
                     )
         except (InvalidAddressError, ReadOnlyDataBlockError):
             return ExceptionResponse(
@@ -156,58 +154,6 @@ class ModbusTcpServer:
                 function_code=request.function_code,
                 exception_code=ExceptionCode.ILLEGAL_DATA_VALUE,
             )
-
-
-def _decode_request_pdu(data: bytes) -> RequestPDU:
-    if len(data) == 0:
-        raise ValueError("PDU is empty")
-
-    function_code = data[0]
-    payload = data[1:]
-
-    if function_code in (
-        FunctionCode.READ_HOLDING_REGISTERS,
-        FunctionCode.READ_INPUT_REGISTERS,
-    ):
-        if len(payload) != 4:
-            raise ValueError("read register request payload must be 4 bytes")
-        address = int.from_bytes(payload[0:2], "big")
-        count = int.from_bytes(payload[2:4], "big")
-        if function_code == FunctionCode.READ_HOLDING_REGISTERS:
-            return ReadHoldingRegistersRequest(address=address, count=count)
-        return ReadInputRegistersRequest(address=address, count=count)
-
-    if function_code == FunctionCode.WRITE_SINGLE_REGISTER:
-        if len(payload) != 4:
-            raise ValueError("write single register request payload must be 4 bytes")
-        address = int.from_bytes(payload[0:2], "big")
-        value = int.from_bytes(payload[2:4], "big")
-        return WriteSingleRegisterRequest(address=address, value=value)
-
-    if function_code == FunctionCode.WRITE_MULTIPLE_REGISTERS:
-        if len(payload) < 5:
-            raise ValueError("write multiple registers request payload is too short")
-
-        address = int.from_bytes(payload[0:2], "big")
-        count = int.from_bytes(payload[2:4], "big")
-        byte_count = payload[4]
-        register_bytes = payload[5:]
-
-        if byte_count != len(register_bytes):
-            raise ValueError("register byte count does not match payload length")
-        if byte_count % 2 != 0:
-            raise ValueError("register byte count must be even")
-        if count != byte_count // 2:
-            raise ValueError("register count does not match byte count")
-
-        values = [
-            int.from_bytes(register_bytes[i : i + 2], "big")
-            for i in range(0, len(register_bytes), 2)
-        ]
-        return WriteMultipleRegistersRequest(address=address, values=values)
-
-    raise ModbusPDUError(f"Unsupported function code: {function_code}")
-
 
 def _encode_exception_response(data: bytes, exception_code: ExceptionCode) -> bytes:
     function_code = data[0] if data else 0

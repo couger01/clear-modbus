@@ -15,11 +15,14 @@ class MemoryDataStore:
         coils: list[BitBlock] | None = None,
         discrete_inputs: list[BitBlock] | None = None,
     ) -> None:
-        # TODO: Decide whether overlapping blocks should be rejected during initialization.
         self.holding_registers = holding_registers if holding_registers is not None else []
         self.input_registers = input_registers if input_registers is not None else []
         self.coils = coils if coils is not None else []
         self.discrete_inputs = discrete_inputs if discrete_inputs is not None else []
+        _validate_no_overlapping_register_blocks(self.holding_registers)
+        _validate_no_overlapping_register_blocks(self.input_registers)
+        _validate_no_overlapping_bit_blocks(self.coils)
+        _validate_no_overlapping_bit_blocks(self.discrete_inputs)
 
     def get_holding_registers(self, address: int, count: int) -> list[int]:
         block = self._find_register_block(self.holding_registers, address, count)
@@ -68,3 +71,34 @@ class MemoryDataStore:
                 return block
 
         raise InvalidAddressError(address, count)
+
+
+def _validate_no_overlapping_register_blocks(blocks: list[RegisterBlock]) -> None:
+    ranges = [
+        (block.start_address, block.end_address)
+        for block in blocks
+        if len(block.values) > 0
+    ]
+    _validate_no_overlapping_ranges(ranges)
+
+
+def _validate_no_overlapping_bit_blocks(blocks: list[BitBlock]) -> None:
+    ranges = [
+        (block.start_address, block.end_address)
+        for block in blocks
+        if len(block.values) > 0
+    ]
+    _validate_no_overlapping_ranges(ranges)
+
+
+def _validate_no_overlapping_ranges(ranges: list[tuple[int, int]]) -> None:
+    sorted_ranges = sorted(ranges)
+    for previous, current in zip(sorted_ranges, sorted_ranges[1:]):
+        previous_start, previous_end = previous
+        current_start, current_end = current
+        if current_start <= previous_end:
+            raise ValueError(
+                "Datastore blocks must not overlap: "
+                f"{previous_start}-{previous_end} overlaps "
+                f"{current_start}-{current_end}."
+            )

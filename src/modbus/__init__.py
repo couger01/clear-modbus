@@ -8,13 +8,16 @@ from modbus.protocol.pdu import (
     WriteMultipleRegistersResponse,
     WriteSingleRegisterRequest,
     WriteSingleRegisterResponse,
+    decode_request_pdu,
     decode_response_pdu,
 )
+from modbus.rtu_client import ModbusRtuClient
 from modbus.simulator import BitRange, ModbusSimulator, RegisterRange, SimulatorProfile
 
 __all__ = [
     "BitRange",
     "ExceptionResponse",
+    "ModbusRtuClient",
     "ModbusSimulator",
     "ModbusTcpClient",
     "ReadHoldingRegistersRequest",
@@ -26,5 +29,6 @@ __all__ = [
     "WriteMultipleRegistersResponse",
     "WriteSingleRegisterRequest",
     "WriteSingleRegisterResponse",
+    "decode_request_pdu",
     "decode_response_pdu",
 ]

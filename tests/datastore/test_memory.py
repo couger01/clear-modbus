@@ -14,6 +14,51 @@ def test_memory_datastore_initializes_empty_blocks_by_default() -> None:
     assert datastore.discrete_inputs == []
 
 
+def test_memory_datastore_rejects_overlapping_register_blocks() -> None:
+    with pytest.raises(ValueError):
+        MemoryDataStore(
+            holding_registers=[
+                RegisterBlock(start_address=0, values=[1, 2]),
+                RegisterBlock(start_address=1, values=[3, 4]),
+            ]
+        )
+
+
+def test_memory_datastore_rejects_overlapping_bit_blocks() -> None:
+    with pytest.raises(ValueError):
+        MemoryDataStore(
+            coils=[
+                BitBlock(start_address=0, values=[True, False]),
+                BitBlock(start_address=1, values=[False, True]),
+            ]
+        )
+
+
+def test_memory_datastore_allows_same_addresses_in_different_data_areas() -> None:
+    datastore = MemoryDataStore(
+        holding_registers=[RegisterBlock(start_address=0, values=[1])],
+        input_registers=[RegisterBlock(start_address=0, values=[2])],
+        coils=[BitBlock(start_address=0, values=[True])],
+        discrete_inputs=[BitBlock(start_address=0, values=[False])],
+    )
+
+    assert datastore.get_holding_registers(0, 1) == [1]
+    assert datastore.get_input_registers(0, 1) == [2]
+    assert datastore.get_coils(0, 1) == [True]
+    assert datastore.get_discrete_inputs(0, 1) == [False]
+
+
+def test_memory_datastore_ignores_empty_blocks_for_overlap_validation() -> None:
+    datastore = MemoryDataStore(
+        holding_registers=[
+            RegisterBlock(start_address=0, values=[]),
+            RegisterBlock(start_address=0, values=[1]),
+        ]
+    )
+
+    assert datastore.get_holding_registers(0, 1) == [1]
+
+
 def test_get_holding_registers_reads_from_matching_block() -> None:
     datastore = MemoryDataStore(
         holding_registers=[

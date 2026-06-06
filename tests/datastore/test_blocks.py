@@ -59,6 +59,18 @@ def test_register_block_write_rejects_invalid_values_without_mutating() -> None:
     assert block.values == [10, 20, 30]
 
 
+def test_register_block_write_rejects_non_int_values_without_mutating() -> None:
+    block = RegisterBlock(start_address=100, values=[10, 20, 30])
+
+    with pytest.raises(InvalidValueError):
+        block.write(address=101, values=[55, True])
+
+    with pytest.raises(InvalidValueError):
+        block.write(address=101, values=[55, "66"])
+
+    assert block.values == [10, 20, 30]
+
+
 def test_register_block_rejects_readonly_write() -> None:
     block = RegisterBlock(start_address=100, values=[10, 20, 30], readonly=True)
 

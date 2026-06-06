@@ -1,6 +1,12 @@
-from modbus import WriteMultipleRegistersResponse, ExceptionResponse, decode_response_pdu
+from modbus import (
+    ExceptionResponse,
+    WriteMultipleRegistersResponse,
+    decode_request_pdu,
+    decode_response_pdu,
+)
 import pytest
 
+from modbus.exceptions import ModbusPDUError
 from modbus.protocol.pdu import (
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
@@ -86,3 +92,47 @@ def test_decode_response_pdu_rejects_mismatched_function_code() -> None:
     request = ReadHoldingRegistersRequest(address=0, count=2)
     with pytest.raises(ValueError):
         decode_response_pdu(data=bytes.fromhex("04 04 00 0A 00 14"), request=request)
+
+
+def test_decode_request_pdu_decodes_read_holding_registers_request() -> None:
+    request = decode_request_pdu(bytes.fromhex("03 00 00 00 02"))
+
+    assert request == ReadHoldingRegistersRequest(address=0, count=2)
+
+
+def test_decode_request_pdu_decodes_read_input_registers_request() -> None:
+    request = decode_request_pdu(bytes.fromhex("04 00 00 00 02"))
+
+    assert request == ReadInputRegistersRequest(address=0, count=2)
+
+
+def test_decode_request_pdu_decodes_write_single_register_request() -> None:
+    request = decode_request_pdu(bytes.fromhex("06 00 00 00 01"))
+
+    assert request == WriteSingleRegisterRequest(address=0, value=1)
+
+
+def test_decode_request_pdu_decodes_write_multiple_registers_request() -> None:
+    request = decode_request_pdu(bytes.fromhex("10 00 00 00 02 04 00 0A 00 14"))
+
+    assert request == WriteMultipleRegistersRequest(address=0, values=[10, 20])
+
+
+def test_decode_request_pdu_rejects_empty_data() -> None:
+    with pytest.raises(ValueError):
+        decode_request_pdu(b"")
+
+
+def test_decode_request_pdu_rejects_bad_payload_length() -> None:
+    with pytest.raises(ValueError):
+        decode_request_pdu(bytes.fromhex("03 00 00 00"))
+
+
+def test_decode_request_pdu_rejects_bad_write_multiple_byte_count() -> None:
+    with pytest.raises(ValueError):
+        decode_request_pdu(bytes.fromhex("10 00 00 00 02 06 00 0A 00 14"))
+
+
+def test_decode_request_pdu_rejects_unsupported_function_code() -> None:
+    with pytest.raises(ModbusPDUError):
+        decode_request_pdu(bytes.fromhex("02 00 00 00 01"))

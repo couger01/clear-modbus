@@ -42,18 +42,20 @@ class RegisterBlock:
         offset = self.offset_for(address)
         return self.values[offset : offset + count]
 
-    def write(self, address: int, values: list[int]) -> None:
-        # TODO: Consider accepting Sequence[object], then validate into list[int] before mutating.
-        # TODO: Use type(value) is int so bool values are rejected even though bool is an int subclass.
+    def write(self, address: int, values: Sequence[object]) -> None:
         if self.readonly:
             raise ReadOnlyDataBlockError(address)
         if not self.contains(address, len(values)):
             raise InvalidAddressError(address)
         offset = self.offset_for(address)
+        validated_values: list[int] = []
         for value in values:
+            if type(value) is not int:
+                raise InvalidValueError(value)
             if not 0 <= value <= 0xFFFF:
                 raise InvalidValueError(value)
-        self.values[offset : offset + len(values)] = values
+            validated_values.append(value)
+        self.values[offset : offset + len(validated_values)] = validated_values
 
     def offset_for(self, address: int) -> int:
         if not self.contains(address):
