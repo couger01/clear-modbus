@@ -1,9 +1,13 @@
-from modbus.exceptions import ModbusConnectionError, ModbusTransportError, ModbusTimeoutError
 import asyncio
 from types import TracebackType
 from typing import Self
 
 from modbus.constants import DEFAULT_MODBUS_TCP_PORT
+from modbus.exceptions import (
+    ModbusConnectionError,
+    ModbusTimeoutError,
+    ModbusTransportError,
+)
 
 
 class TCPTransport:
@@ -40,7 +44,9 @@ class TCPTransport:
             await self.close()
         try:
             async with asyncio.timeout(self.timeout):
-                self.stream_reader, self.stream_writer =await asyncio.open_connection(host=self.host, port=self.port)
+                self.stream_reader, self.stream_writer = await asyncio.open_connection(
+                    host=self.host, port=self.port
+                )
         except TimeoutError as e:
             raise ModbusTimeoutError(e)
         except Exception as e:

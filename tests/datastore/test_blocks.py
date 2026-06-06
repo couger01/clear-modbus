@@ -1,7 +1,11 @@
 import pytest
 
 from modbus.datastore.blocks import BitBlock, RegisterBlock
-from modbus.datastore.errors import InvalidAddressError, InvalidValueError, ReadOnlyDataBlockError
+from modbus.datastore.errors import (
+    InvalidAddressError,
+    InvalidValueError,
+    ReadOnlyDataBlockError,
+)
 
 
 def test_register_block_end_address_is_inclusive() -> None:

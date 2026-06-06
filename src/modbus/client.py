@@ -1,4 +1,3 @@
-from modbus.transport import TCPTransport
 from types import TracebackType
 from typing import Self
 
@@ -16,6 +15,7 @@ from modbus.protocol.pdu import (
     WriteSingleRegisterRequest,
     WriteSingleRegisterResponse,
 )
+from modbus.transport import TCPTransport
 
 
 class ModbusTcpClient:
@@ -35,7 +35,9 @@ class ModbusTcpClient:
         self.port = port
         self.unit_id = unit_id
         self.timeout = timeout
-        self.transport = TCPTransport(host=self.host, port=self.port, timeout=self.timeout)
+        self.transport = TCPTransport(
+            host=self.host, port=self.port, timeout=self.timeout
+        )
         self.codec = ModbusTCPCodec()
         self._transaction_id = 1
 
@@ -65,17 +67,26 @@ class ModbusTcpClient:
     async def close(self) -> None:
         await self.transport.close()
 
-    async def execute(self, request: RequestPDU, unit_id: int | None = None) -> ResponsePDU:
+    async def execute(
+        self, request: RequestPDU, unit_id: int | None = None
+    ) -> ResponsePDU:
         if unit_id is None:
             unit_id = self.unit_id
         next_transaction_id = self._next_transaction_id()
-        payload = self.codec.encode_request(request=request, transaction_id=next_transaction_id, unit_id=unit_id)
+        payload = self.codec.encode_request(
+            request=request, transaction_id=next_transaction_id, unit_id=unit_id
+        )
         await self.transport.send(payload)
         data = await self.transport.receive(7)
         header = MBAPHeader.decode(data=data)
         pdu = await self.transport.receive(header.length - 1)
         data = header.encode() + pdu
-        response = self.codec.decode_response(data=data, request=request, expected_transaction_id=next_transaction_id, expected_unit_id=unit_id)
+        response = self.codec.decode_response(
+            data=data,
+            request=request,
+            expected_transaction_id=next_transaction_id,
+            expected_unit_id=unit_id,
+        )
         return response
 
     async def read_holding_registers(
@@ -117,7 +128,6 @@ class ModbusTcpClient:
         if response.value != value:
             raise ValueError()
         return response
-        
 
     async def write_multiple_registers(
         self,

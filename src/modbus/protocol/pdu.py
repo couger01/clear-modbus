@@ -137,7 +137,11 @@ class WriteSingleRegisterResponse:
     value: int
 
     def encode(self) -> bytes:
-        return bytes([self.function_code]) + self.address.to_bytes(2, "big") + self.value.to_bytes(2, "big")
+        return (
+            bytes([self.function_code])
+            + self.address.to_bytes(2, "big")
+            + self.value.to_bytes(2, "big")
+        )
 
     @classmethod
     def decode(cls, payload: bytes) -> "WriteSingleRegisterResponse":
@@ -185,7 +189,11 @@ class WriteMultipleRegistersResponse:
     count: int
 
     def encode(self) -> bytes:
-        return (bytes([self.function_code]) + self.address.to_bytes(2, "big") + self.count.to_bytes(2, "big"))
+        return (
+            bytes([self.function_code])
+            + self.address.to_bytes(2, "big")
+            + self.count.to_bytes(2, "big")
+        )
 
     @classmethod
     def decode(cls, payload: bytes) -> "WriteMultipleRegistersResponse":

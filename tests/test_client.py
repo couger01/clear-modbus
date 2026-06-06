@@ -1,18 +1,19 @@
-from modbus.transport import TCPTransport
-from modbus.constants import DEFAULT_MODBUS_TCP_PORT
 import pytest
 
 from modbus.client import ModbusTcpClient
+from modbus.constants import DEFAULT_MODBUS_TCP_PORT
+from modbus.protocol.codec import ModbusTCPCodec
 from modbus.protocol.pdu import (
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
     WriteMultipleRegistersRequest,
     WriteMultipleRegistersResponse,
-    WriteSingleRegisterResponse,
     WriteSingleRegisterRequest,
+    WriteSingleRegisterResponse,
 )
-from modbus.protocol.codec import ModbusTCPCodec
+from modbus.transport import TCPTransport
+
 
 class FakeTransport:
     def __init__(self, receive_chunks: list[bytes] | None = None) -> None:
@@ -42,7 +43,9 @@ class FakeTransport:
 
 
 def test_client_initializes_transport_codec_and_transaction_counter() -> None:
-    client = ModbusTcpClient(host="127.0.0.1", port=DEFAULT_MODBUS_TCP_PORT, unit_id=1, timeout=5)
+    client = ModbusTcpClient(
+        host="127.0.0.1", port=DEFAULT_MODBUS_TCP_PORT, unit_id=1, timeout=5
+    )
     assert client.host == "127.0.0.1"
     assert client.port == DEFAULT_MODBUS_TCP_PORT
     assert client.unit_id == 1
@@ -58,7 +61,7 @@ def test_next_transaction_id_starts_at_one_and_wraps() -> None:
     client._transaction_id = 0xFFFF
     assert client._next_transaction_id() == 0xFFFF
     assert client._next_transaction_id() == 1
-    
+
 
 @pytest.mark.asyncio
 async def test_client_context_manager_connects_and_closes() -> None:
@@ -73,6 +76,7 @@ async def test_client_context_manager_connects_and_closes() -> None:
 
     assert transport.closed is True
 
+
 @pytest.mark.asyncio
 async def test_execute_sends_encoded_request_and_decodes_response() -> None:
     response_header = bytes.fromhex("00 01 00 00 00 07 01")
@@ -86,10 +90,13 @@ async def test_execute_sends_encoded_request_and_decodes_response() -> None:
 
     response = await client.execute(request)
 
-    assert client.transport.sent == [bytes.fromhex("00 01 00 00 00 06 01 03 00 00 00 02")]
+    assert client.transport.sent == [
+        bytes.fromhex("00 01 00 00 00 06 01 03 00 00 00 02")
+    ]
 
     assert isinstance(response, ReadRegistersResponse)
     assert response.values == [10, 20]
+
 
 @pytest.mark.asyncio
 async def test_execute_uses_unit_id_override() -> None:
@@ -104,12 +111,17 @@ async def test_execute_uses_unit_id_override() -> None:
 
     response = await client.execute(request, unit_id=2)
 
-    assert client.transport.sent == [bytes.fromhex("00 01 00 00 00 06 02 03 00 00 00 02")]
+    assert client.transport.sent == [
+        bytes.fromhex("00 01 00 00 00 06 02 03 00 00 00 02")
+    ]
 
     assert isinstance(response, ReadRegistersResponse)
 
+
 @pytest.mark.asyncio
-async def test_read_holding_registers_builds_request_and_returns_read_response() -> None:
+async def test_read_holding_registers_builds_request_and_returns_read_response() -> (
+    None
+):
     client = ModbusTcpClient(host="127.0.0.1")
     captured: dict[str, object] = {}
 
@@ -129,6 +141,7 @@ async def test_read_holding_registers_builds_request_and_returns_read_response()
 
     assert response.function_code == 0x03
     assert response.values == [10, 20]
+
 
 @pytest.mark.asyncio
 async def test_read_input_registers_builds_request_and_returns_read_response() -> None:
@@ -214,7 +227,9 @@ async def test_write_multiple_registers_verifies_echoed_address_and_count() -> N
 
     client.execute = fake_execute
 
-    response = await client.write_multiple_registers(address=0, values=[10, 20], unit_id=7)
+    response = await client.write_multiple_registers(
+        address=0, values=[10, 20], unit_id=7
+    )
 
     assert isinstance(captured["request"], WriteMultipleRegistersRequest)
     assert captured["request"].address == 0

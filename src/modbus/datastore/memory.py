@@ -15,7 +15,9 @@ class MemoryDataStore:
         coils: list[BitBlock] | None = None,
         discrete_inputs: list[BitBlock] | None = None,
     ) -> None:
-        self.holding_registers = holding_registers if holding_registers is not None else []
+        self.holding_registers = (
+            holding_registers if holding_registers is not None else []
+        )
         self.input_registers = input_registers if input_registers is not None else []
         self.coils = coils if coils is not None else []
         self.discrete_inputs = discrete_inputs if discrete_inputs is not None else []

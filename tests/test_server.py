@@ -114,7 +114,9 @@ async def test_handle_request_routes_reads_to_datastore() -> None:
         ReadInputRegistersRequest(address=100, count=2)
     )
 
-    assert holding_response == ReadRegistersResponse(function_code=0x03, values=[10, 20])
+    assert holding_response == ReadRegistersResponse(
+        function_code=0x03, values=[10, 20]
+    )
     assert input_response == ReadRegistersResponse(function_code=0x04, values=[30, 40])
 
 
@@ -192,7 +194,9 @@ async def test_handle_request_converts_invalid_value_to_exception_response() -> 
 
 
 @pytest.mark.asyncio
-async def test_handle_request_converts_unsupported_request_to_exception_response() -> None:
+async def test_handle_request_converts_unsupported_request_to_exception_response() -> (
+    None
+):
     class UnsupportedRequest:
         function_code = 0x02
 

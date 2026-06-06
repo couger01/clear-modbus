@@ -26,7 +26,12 @@ class MBAPHeader:
         protocol_id = int.from_bytes(data[2:4], "big")
         length = int.from_bytes(data[4:6], "big")
         unit_id = data[6]
-        return cls(transaction_id=transaction_id, protocol_id=protocol_id, length=length, unit_id=unit_id)
+        return cls(
+            transaction_id=transaction_id,
+            protocol_id=protocol_id,
+            length=length,
+            unit_id=unit_id,
+        )
 
 
 @dataclass(frozen=True)
@@ -38,7 +43,12 @@ class ModbusTCPFrame:
 
     def encode(self) -> bytes:
         length = 1 + len(self.pdu)
-        header = MBAPHeader(transaction_id=self.transaction_id, unit_id=self.unit_id, length=length, protocol_id=self.protocol_id)
+        header = MBAPHeader(
+            transaction_id=self.transaction_id,
+            unit_id=self.unit_id,
+            length=length,
+            protocol_id=self.protocol_id,
+        )
         frame = bytearray()
         frame += header.encode()
         frame += self.pdu
@@ -54,5 +64,10 @@ class ModbusTCPFrame:
             raise ValueError()
         if header.length != 1 + len(pdu):
             raise ValueError()
-        
-        return cls(transaction_id=header.transaction_id, unit_id=header.unit_id, pdu=pdu, protocol_id=header.protocol_id)
+
+        return cls(
+            transaction_id=header.transaction_id,
+            unit_id=header.unit_id,
+            pdu=pdu,
+            protocol_id=header.protocol_id,
+        )

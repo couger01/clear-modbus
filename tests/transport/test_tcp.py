@@ -46,7 +46,9 @@ def test_tcp_transport_initializes_connection_settings() -> None:
 
 
 @pytest.mark.asyncio
-async def test_tcp_transport_async_context_manager_connects_and_closes(monkeypatch) -> None:
+async def test_tcp_transport_async_context_manager_connects_and_closes(
+    monkeypatch,
+) -> None:
     reader = FakeStreamReader()
     writer = FakeStreamWriter()
 
@@ -55,7 +57,9 @@ async def test_tcp_transport_async_context_manager_connects_and_closes(monkeypat
         assert port == DEFAULT_MODBUS_TCP_PORT
         return reader, writer
 
-    monkeypatch.setattr("modbus.transport.tcp.asyncio.open_connection", fake_open_connection)
+    monkeypatch.setattr(
+        "modbus.transport.tcp.asyncio.open_connection", fake_open_connection
+    )
 
     async with TCPTransport(host="127.0.0.1") as transport:
         assert transport.stream_reader is reader
@@ -76,7 +80,9 @@ async def test_connect_opens_streams(monkeypatch) -> None:
     async def fake_open_connection(*, host: str, port: int):
         return reader, writer
 
-    monkeypatch.setattr("modbus.transport.tcp.asyncio.open_connection", fake_open_connection)
+    monkeypatch.setattr(
+        "modbus.transport.tcp.asyncio.open_connection", fake_open_connection
+    )
 
     transport = TCPTransport(host="127.0.0.1")
 
@@ -91,7 +97,9 @@ async def test_connect_wraps_timeout_errors(monkeypatch) -> None:
     async def fake_open_connection(*, host: str, port: int):
         raise TimeoutError()
 
-    monkeypatch.setattr("modbus.transport.tcp.asyncio.open_connection", fake_open_connection)
+    monkeypatch.setattr(
+        "modbus.transport.tcp.asyncio.open_connection", fake_open_connection
+    )
 
     transport = TCPTransport(host="127.0.0.1")
 

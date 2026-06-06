@@ -1,7 +1,11 @@
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Sequence
 
-from modbus.datastore.errors import InvalidAddressError, InvalidValueError, ReadOnlyDataBlockError
+from modbus.datastore.errors import (
+    InvalidAddressError,
+    InvalidValueError,
+    ReadOnlyDataBlockError,
+)
 
 
 @dataclass

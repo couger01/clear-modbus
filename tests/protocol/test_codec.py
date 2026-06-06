@@ -21,7 +21,9 @@ def test_decode_response_validates_transaction_id() -> None:
 
     data = bytes.fromhex("00 02 00 00 00 06 01 03 04 00 0A 00 14")
     with pytest.raises(ValueError):
-        codec.decode_response(data=data, request=request, expected_transaction_id=1, expected_unit_id=1)
+        codec.decode_response(
+            data=data, request=request, expected_transaction_id=1, expected_unit_id=1
+        )
 
 
 def test_decode_response_validates_unit_id() -> None:
@@ -30,15 +32,24 @@ def test_decode_response_validates_unit_id() -> None:
 
     data = bytes.fromhex("00 01 00 00 00 06 02 03 04 00 0A 00 14")
     with pytest.raises(ValueError):
-        codec.decode_response(data=data, request=request, expected_transaction_id=1, expected_unit_id=1)
+        codec.decode_response(
+            data=data, request=request, expected_transaction_id=1, expected_unit_id=1
+        )
 
 
 def test_decode_response_returns_decoded_response_pdu() -> None:
     codec = ModbusTCPCodec()
     request = ReadHoldingRegistersRequest(address=0, count=2)
 
-    frame = ModbusTCPFrame(transaction_id=1, unit_id=1, pdu=bytes.fromhex("03 04 00 0A 00 14"))
-    response = codec.decode_response(data=frame.encode(), request=request, expected_transaction_id=1, expected_unit_id=1)
+    frame = ModbusTCPFrame(
+        transaction_id=1, unit_id=1, pdu=bytes.fromhex("03 04 00 0A 00 14")
+    )
+    response = codec.decode_response(
+        data=frame.encode(),
+        request=request,
+        expected_transaction_id=1,
+        expected_unit_id=1,
+    )
     assert isinstance(response, ReadRegistersResponse)
 
 

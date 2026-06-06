@@ -8,11 +8,11 @@ from modbus.protocol.pdu import (
     WriteSingleRegisterRequest,
 )
 from modbus.protocol.rtu import (
-    ModbusRTUCodec,
-    ModbusRTUFrame,
     RTU_EXCEPTION_RESPONSE_SIZE,
     RTU_RESPONSE_PREFIX_SIZE,
     RTU_WRITE_REGISTER_RESPONSE_SIZE,
+    ModbusRTUCodec,
+    ModbusRTUFrame,
     crc16_modbus,
     decode_rtu_frame,
     encode_rtu_frame,
@@ -143,7 +143,9 @@ def test_fixed_rtu_response_size_returns_write_echo_size(request_pdu) -> None:
         ReadInputRegistersRequest(address=0, count=2),
     ],
 )
-def test_fixed_rtu_response_size_returns_none_for_variable_read_size(request_pdu) -> None:
+def test_fixed_rtu_response_size_returns_none_for_variable_read_size(
+    request_pdu,
+) -> None:
     assert fixed_rtu_response_size(request_pdu) is None
 
 

@@ -1,8 +1,13 @@
 import asyncio
+from functools import partial
 from types import TracebackType
 from typing import Self
 
-from modbus.exceptions import ModbusConnectionError, ModbusTransportError, ModbusTimeoutError
+from modbus.exceptions import (
+    ModbusConnectionError,
+    ModbusTimeoutError,
+    ModbusTransportError,
+)
 
 
 class SerialTransport:
@@ -45,12 +50,15 @@ class SerialTransport:
             ) from exc
 
         try:
-            self.serial_connection = await asyncio.to_thread(
+            serial_factory = partial(
                 serial.Serial,
                 port=self.port,
                 baudrate=self.baudrate,
                 timeout=self.timeout,
                 write_timeout=self.timeout,
+            )
+            self.serial_connection = await asyncio.to_thread(
+                serial_factory,
             )
         except Exception as exc:
             raise ModbusConnectionError(exc) from exc
@@ -94,5 +102,7 @@ class SerialTransport:
             raise ModbusTransportError(exc) from exc
 
         if len(data) != size:
-            raise ModbusTransportError("Serial read returned fewer bytes than requested.")
+            raise ModbusTransportError(
+                "Serial read returned fewer bytes than requested."
+            )
         return data

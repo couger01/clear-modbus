@@ -1,4 +1,8 @@
-from modbus.datastore.errors import InvalidAddressError, InvalidValueError, ReadOnlyDataBlockError
+from modbus.datastore.errors import (
+    InvalidAddressError,
+    InvalidValueError,
+    ReadOnlyDataBlockError,
+)
 
 
 def test_invalid_address_error_stores_address_and_count() -> None:

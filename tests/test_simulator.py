@@ -91,7 +91,9 @@ async def test_simulator_serves_modbus_tcp_client_requests() -> None:
     )
 
     async with simulator:
-        async with ModbusTcpClient(host=simulator.host, port=simulator.bound_port) as client:
+        async with ModbusTcpClient(
+            host=simulator.host, port=simulator.bound_port
+        ) as client:
             response = await client.read_holding_registers(address=0, count=2)
 
     assert response.values == [10, 20]
@@ -104,7 +106,7 @@ async def test_simulator_runs_and_cancels_background_tasks() -> None:
         port=0,
         datastore=MemoryDataStore(
             holding_registers=[RegisterBlock(start_address=0, values=[10])]
-        )
+        ),
     )
 
     async def update_register(datastore: MemoryDataStore) -> None:

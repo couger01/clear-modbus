@@ -160,7 +160,9 @@ async def test_execute_rejects_bad_crc() -> None:
 
 
 @pytest.mark.asyncio
-async def test_read_holding_registers_builds_request_and_returns_read_response() -> None:
+async def test_read_holding_registers_builds_request_and_returns_read_response() -> (
+    None
+):
     client = ModbusRtuClient(port="/dev/ttyUSB0", transport=FakeTransport())
     captured: dict[str, object] = {}
 

@@ -1,8 +1,8 @@
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from types import TracebackType
-from typing import Self
+from typing import Any, Self
 
 from modbus.constants import DEFAULT_MODBUS_TCP_PORT
 from modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
@@ -53,7 +53,7 @@ class SimulatorProfile:
         )
 
 
-SimulatorTaskFactory = Callable[[MemoryDataStore], Awaitable[None]]
+SimulatorTaskFactory = Callable[[MemoryDataStore], Coroutine[Any, Any, None]]
 
 
 class ModbusSimulator:

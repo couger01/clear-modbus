@@ -1,11 +1,13 @@
-from modbus.constants import MODBUS_TCP_PROTOCOL_ID
 import pytest
 
+from modbus.constants import MODBUS_TCP_PROTOCOL_ID
 from modbus.protocol.mbap import MBAPHeader, ModbusTCPFrame
 
 
 def test_mbap_header_encodes_expected_bytes() -> None:
-    header = MBAPHeader(transaction_id=1, protocol_id=MODBUS_TCP_PROTOCOL_ID, length=6, unit_id=1)
+    header = MBAPHeader(
+        transaction_id=1, protocol_id=MODBUS_TCP_PROTOCOL_ID, length=6, unit_id=1
+    )
     assert header.encode() == bytes.fromhex("00 01 00 00 00 06 01")
 
 
@@ -25,7 +27,9 @@ def test_mbap_header_rejects_invalid_length() -> None:
 
 
 def test_modbus_tcp_frame_encodes_header_plus_pdu() -> None:
-    frame = ModbusTCPFrame(transaction_id=1, unit_id=1, pdu=bytes.fromhex("03 00 00 00 02"))
+    frame = ModbusTCPFrame(
+        transaction_id=1, unit_id=1, pdu=bytes.fromhex("03 00 00 00 02")
+    )
 
     assert frame.encode() == bytes.fromhex("00 01 00 00 00 06 01 03 00 00 00 02")
 

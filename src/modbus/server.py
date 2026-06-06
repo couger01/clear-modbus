@@ -13,7 +13,11 @@ from modbus import (
     WriteSingleRegisterResponse,
 )
 from modbus.constants import DEFAULT_MODBUS_TCP_PORT, MODBUS_TCP_PROTOCOL_ID
-from modbus.datastore import InvalidAddressError, MemoryDataStore, ReadOnlyDataBlockError
+from modbus.datastore import (
+    InvalidAddressError,
+    MemoryDataStore,
+    ReadOnlyDataBlockError,
+)
 from modbus.datastore.base import ModbusDataStore
 from modbus.datastore.errors import InvalidValueError
 from modbus.exceptions import ModbusPDUError
@@ -130,7 +134,9 @@ class ModbusTcpServer:
                 case WriteSingleRegisterRequest(address=address, value=value):
                     self.datastore.set_holding_registers(address, [value])
                     return WriteSingleRegisterResponse(
-                        function_code=request.function_code, address=address, value=value
+                        function_code=request.function_code,
+                        address=address,
+                        value=value,
                     )
                 case WriteMultipleRegistersRequest(address=address, values=values):
                     self.datastore.set_holding_registers(address, values)
@@ -154,6 +160,7 @@ class ModbusTcpServer:
                 function_code=request.function_code,
                 exception_code=ExceptionCode.ILLEGAL_DATA_VALUE,
             )
+
 
 def _encode_exception_response(data: bytes, exception_code: ExceptionCode) -> bytes:
     function_code = data[0] if data else 0

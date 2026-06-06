@@ -14,8 +14,8 @@ from modbus.protocol.pdu import (
     WriteSingleRegisterResponse,
 )
 from modbus.protocol.rtu import (
-    ModbusRTUCodec,
     RTU_RESPONSE_PREFIX_SIZE,
+    ModbusRTUCodec,
     rtu_read_register_response_size,
     rtu_response_size_from_prefix,
 )
@@ -43,7 +43,9 @@ class ModbusRtuClient:
         self.transport = (
             transport
             if transport is not None
-            else SerialTransport(port=self.port, baudrate=self.baudrate, timeout=self.timeout)
+            else SerialTransport(
+                port=self.port, baudrate=self.baudrate, timeout=self.timeout
+            )
         )
         self.codec = ModbusRTUCodec()
 
@@ -65,7 +67,9 @@ class ModbusRtuClient:
     async def close(self) -> None:
         await self.transport.close()
 
-    async def execute(self, request: RequestPDU, unit_id: int | None = None) -> ResponsePDU:
+    async def execute(
+        self, request: RequestPDU, unit_id: int | None = None
+    ) -> ResponsePDU:
         if unit_id is None:
             unit_id = self.unit_id
 
@@ -78,7 +82,9 @@ class ModbusRtuClient:
             byte_count_data = await self.transport.receive(1)
             response_size = rtu_read_register_response_size(byte_count_data[0])
             remaining_size = response_size - RTU_RESPONSE_PREFIX_SIZE - 1
-            data = prefix + byte_count_data + await self.transport.receive(remaining_size)
+            data = (
+                prefix + byte_count_data + await self.transport.receive(remaining_size)
+            )
         else:
             remaining_size = response_size - RTU_RESPONSE_PREFIX_SIZE
             data = prefix + await self.transport.receive(remaining_size)

@@ -1,11 +1,11 @@
+import pytest
+
 from modbus import (
     ExceptionResponse,
     WriteMultipleRegistersResponse,
     decode_request_pdu,
     decode_response_pdu,
 )
-import pytest
-
 from modbus.exceptions import ModbusPDUError
 from modbus.protocol.pdu import (
     ReadHoldingRegistersRequest,
