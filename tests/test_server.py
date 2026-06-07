@@ -3,17 +3,24 @@ import asyncio
 import pytest
 
 from modbus.constants import DEFAULT_MODBUS_TCP_PORT
-from modbus.datastore import MemoryDataStore, RegisterBlock
+from modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
 from modbus.datastore.errors import InvalidValueError
 from modbus.protocol.functions import ExceptionCode
 from modbus.protocol.mbap import ModbusTCPFrame
 from modbus.protocol.pdu import (
     ExceptionResponse,
+    ReadBitsResponse,
+    ReadCoilsRequest,
+    ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
+    WriteMultipleCoilsRequest,
+    WriteMultipleCoilsResponse,
     WriteMultipleRegistersRequest,
     WriteMultipleRegistersResponse,
+    WriteSingleCoilRequest,
+    WriteSingleCoilResponse,
     WriteSingleRegisterRequest,
     WriteSingleRegisterResponse,
 )
@@ -104,6 +111,8 @@ async def test_handle_request_routes_reads_to_datastore() -> None:
     datastore = MemoryDataStore(
         holding_registers=[RegisterBlock(start_address=0, values=[10, 20])],
         input_registers=[RegisterBlock(start_address=100, values=[30, 40])],
+        coils=[BitBlock(start_address=200, values=[True, False])],
+        discrete_inputs=[BitBlock(start_address=300, values=[False, True])],
     )
     server = ModbusTcpServer(datastore=datastore)
 
@@ -113,30 +122,55 @@ async def test_handle_request_routes_reads_to_datastore() -> None:
     input_response = await server.handle_request(
         ReadInputRegistersRequest(address=100, count=2)
     )
+    coils_response = await server.handle_request(ReadCoilsRequest(address=200, count=2))
+    discrete_inputs_response = await server.handle_request(
+        ReadDiscreteInputsRequest(address=300, count=2)
+    )
 
     assert holding_response == ReadRegistersResponse(
         function_code=0x03, values=[10, 20]
     )
     assert input_response == ReadRegistersResponse(function_code=0x04, values=[30, 40])
+    assert coils_response == ReadBitsResponse(function_code=0x01, values=[True, False])
+    assert discrete_inputs_response == ReadBitsResponse(
+        function_code=0x02, values=[False, True]
+    )
 
 
 @pytest.mark.asyncio
 async def test_handle_request_routes_writes_to_datastore() -> None:
     holding_registers = RegisterBlock(start_address=0, values=[10, 20, 30])
-    datastore = MemoryDataStore(holding_registers=[holding_registers])
+    coils = BitBlock(start_address=0, values=[False, False, False])
+    datastore = MemoryDataStore(holding_registers=[holding_registers], coils=[coils])
     server = ModbusTcpServer(datastore=datastore)
 
+    single_coil_response = await server.handle_request(
+        WriteSingleCoilRequest(address=1, value=True)
+    )
     single_response = await server.handle_request(
         WriteSingleRegisterRequest(address=1, value=99)
+    )
+    multiple_coils_response = await server.handle_request(
+        WriteMultipleCoilsRequest(address=0, values=[True, False])
     )
     multiple_response = await server.handle_request(
         WriteMultipleRegistersRequest(address=0, values=[55, 66])
     )
 
+    assert single_coil_response == WriteSingleCoilResponse(
+        function_code=0x05,
+        address=1,
+        value=True,
+    )
     assert single_response == WriteSingleRegisterResponse(
         function_code=0x06,
         address=1,
         value=99,
+    )
+    assert multiple_coils_response == WriteMultipleCoilsResponse(
+        function_code=0x0F,
+        address=0,
+        count=2,
     )
     assert multiple_response == WriteMultipleRegistersResponse(
         function_code=0x10,
@@ -144,6 +178,7 @@ async def test_handle_request_routes_writes_to_datastore() -> None:
         count=2,
     )
     assert holding_registers.values == [55, 66, 30]
+    assert coils.values == [True, False, False]
 
 
 @pytest.mark.asyncio
@@ -246,7 +281,7 @@ async def test_handle_client_writes_exception_frame_for_unsupported_function() -
     request_frame = ModbusTCPFrame(
         transaction_id=123,
         unit_id=7,
-        pdu=bytes.fromhex("02 00 00 00 01"),
+        pdu=bytes.fromhex("11 00 00 00 01"),
     ).encode()
     reader = FakeStreamReader(chunks=[request_frame[:7], request_frame[7:]])
     writer = FakeStreamWriter()
@@ -257,7 +292,7 @@ async def test_handle_client_writes_exception_frame_for_unsupported_function() -
         transaction_id=123,
         unit_id=7,
         pdu=ExceptionResponse(
-            function_code=0x02,
+            function_code=0x11,
             exception_code=ExceptionCode.ILLEGAL_FUNCTION,
         ).encode(),
     ).encode()

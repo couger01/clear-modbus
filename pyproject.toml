@@ -1,7 +1,7 @@
 [project]
-name = "modbus"
+name = "clear-modbus"
 version = "0.1.0"
-description = "Add your description here"
+description = "Async Python Modbus TCP and RTU client/server toolkit with simulator support."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -17,10 +17,13 @@ where = ["src"]
 
 [dependency-groups]
 dev = [
+    "myst-parser>=5.1.0",
     "pre-commit>=4.0.0",
+    "pydoclint>=0.8.6",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.3.0",
     "ruff>=0.11.0",
+    "sphinx>=9.1.0",
     "ty>=0.0.1a1",
 ]
 
@@ -29,8 +32,12 @@ line-length = 88
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
-ignore = ["E501"]
+select = ["E", "F", "I", "UP", "D", "DOC"]
+ignore = ["E501", "D107"]
+preview = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D", "DOC"]
 
 [tool.ty]
 environment.python-version = "3.12"

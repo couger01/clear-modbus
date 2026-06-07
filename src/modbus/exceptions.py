@@ -1,3 +1,6 @@
+"""Exception hierarchy for transport, protocol, and device failures."""
+
+
 class ModbusError(Exception):
     """Base exception for this Modbus package."""
 
@@ -22,11 +25,21 @@ class ModbusFrameError(ModbusProtocolError):
     """Raised when an ADU/MBAP frame is malformed."""
 
 
+class ModbusCRCError(ModbusFrameError):
+    """Raised when an RTU frame CRC does not match the frame payload."""
+
+
 class ModbusPDUError(ModbusProtocolError):
     """Raised when a PDU is malformed or unsupported."""
 
 
+class ModbusResponseMismatchError(ModbusProtocolError):
+    """Raised when a response does not match the request context."""
+
+
 class ModbusExceptionResponse(ModbusProtocolError):
+    """Represent a valid Modbus exception response from a device."""
+
     function_code: int
     exception_code: int
 
@@ -37,3 +50,7 @@ class ModbusExceptionResponse(ModbusProtocolError):
             f"Modbus exception response: function_code=0x{function_code:02X}, "
             f"exception_code=0x{exception_code:02X}"
         )
+
+
+class ModbusExceptionResponseError(ModbusExceptionResponse):
+    """Raised when a device returns a valid Modbus exception response."""

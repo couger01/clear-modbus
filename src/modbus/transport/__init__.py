@@ -1,3 +1,5 @@
+"""Transport implementations for Modbus TCP and RTU connections."""
+
 from modbus.transport.base import Transport
 from modbus.transport.serial import SerialTransport
 from modbus.transport.tcp import TCPTransport

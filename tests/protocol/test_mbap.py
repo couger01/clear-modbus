@@ -1,6 +1,7 @@
 import pytest
 
 from modbus.constants import MODBUS_TCP_PROTOCOL_ID
+from modbus.exceptions import ModbusFrameError
 from modbus.protocol.mbap import MBAPHeader, ModbusTCPFrame
 
 
@@ -20,9 +21,9 @@ def test_mbap_header_decodes_expected_fields() -> None:
 
 
 def test_mbap_header_rejects_invalid_length() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusFrameError):
         MBAPHeader.decode(bytes.fromhex("00 00 00 00 00 00"))
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusFrameError):
         MBAPHeader.decode(bytes.fromhex("00 00 00 00 00 00 00 00"))
 
 
@@ -43,10 +44,10 @@ def test_modbus_tcp_frame_decodes_header_and_pdu() -> None:
 
 
 def test_modbus_tcp_frame_rejects_nonzero_protocol_id() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusFrameError):
         ModbusTCPFrame.decode(bytes.fromhex("00 01 00 01 00 06 01 03 00 00 00 02"))
 
 
 def test_modbus_tcp_frame_rejects_length_mismatch() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusFrameError):
         ModbusTCPFrame.decode(bytes.fromhex("00 01 00 00 00 07 01 03 00 00 00 02"))

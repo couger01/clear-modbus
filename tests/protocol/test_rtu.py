@@ -1,10 +1,19 @@
 import pytest
 
+from modbus.exceptions import (
+    ModbusCRCError,
+    ModbusFrameError,
+    ModbusResponseMismatchError,
+)
 from modbus.protocol.pdu import (
+    ReadCoilsRequest,
+    ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
+    WriteMultipleCoilsRequest,
     WriteMultipleRegistersRequest,
+    WriteSingleCoilRequest,
     WriteSingleRegisterRequest,
 )
 from modbus.protocol.rtu import (
@@ -17,6 +26,7 @@ from modbus.protocol.rtu import (
     decode_rtu_frame,
     encode_rtu_frame,
     fixed_rtu_response_size,
+    rtu_byte_count_response_size,
     rtu_read_register_response_size,
     rtu_response_size_from_prefix,
 )
@@ -48,12 +58,12 @@ def test_rtu_frame_decodes_unit_id_and_pdu() -> None:
 
 
 def test_rtu_frame_rejects_short_frame() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusFrameError):
         ModbusRTUFrame.decode(bytes.fromhex("01 03 C5"))
 
 
 def test_rtu_frame_rejects_bad_crc() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusCRCError):
         ModbusRTUFrame.decode(bytes.fromhex("01 03 00 00 00 0A 00 00"))
 
 
@@ -89,7 +99,7 @@ def test_rtu_codec_validates_response_unit_id() -> None:
         pdu=bytes.fromhex("03 04 00 0A 00 14"),
     ).encode()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusResponseMismatchError):
         codec.decode_response(
             data=response,
             request=request,
@@ -128,7 +138,9 @@ def test_rtu_response_prefix_size_is_unit_id_plus_function_code() -> None:
 @pytest.mark.parametrize(
     "request_pdu",
     [
+        WriteSingleCoilRequest(address=0, value=True),
         WriteSingleRegisterRequest(address=0, value=1),
+        WriteMultipleCoilsRequest(address=0, values=[True, False]),
         WriteMultipleRegistersRequest(address=0, values=[10, 20]),
     ],
 )
@@ -139,6 +151,8 @@ def test_fixed_rtu_response_size_returns_write_echo_size(request_pdu) -> None:
 @pytest.mark.parametrize(
     "request_pdu",
     [
+        ReadCoilsRequest(address=0, count=2),
+        ReadDiscreteInputsRequest(address=0, count=2),
         ReadHoldingRegistersRequest(address=0, count=2),
         ReadInputRegistersRequest(address=0, count=2),
     ],
@@ -187,3 +201,7 @@ def test_rtu_read_register_response_size_uses_byte_count() -> None:
 def test_rtu_read_register_response_size_rejects_odd_byte_count() -> None:
     with pytest.raises(ValueError):
         rtu_read_register_response_size(3)
+
+
+def test_rtu_byte_count_response_size_allows_odd_byte_count() -> None:
+    assert rtu_byte_count_response_size(1) == 6

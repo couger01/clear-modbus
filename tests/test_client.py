@@ -2,13 +2,22 @@ import pytest
 
 from modbus.client import ModbusTcpClient
 from modbus.constants import DEFAULT_MODBUS_TCP_PORT
+from modbus.exceptions import ModbusExceptionResponseError
 from modbus.protocol.codec import ModbusTCPCodec
 from modbus.protocol.pdu import (
+    ExceptionResponse,
+    ReadBitsResponse,
+    ReadCoilsRequest,
+    ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
+    WriteMultipleCoilsRequest,
+    WriteMultipleCoilsResponse,
     WriteMultipleRegistersRequest,
     WriteMultipleRegistersResponse,
+    WriteSingleCoilRequest,
+    WriteSingleCoilResponse,
     WriteSingleRegisterRequest,
     WriteSingleRegisterResponse,
 )
@@ -119,6 +128,64 @@ async def test_execute_uses_unit_id_override() -> None:
 
 
 @pytest.mark.asyncio
+async def test_execute_returns_raw_exception_response() -> None:
+    response_header = bytes.fromhex("00 01 00 00 00 03 01")
+    response_pdu = bytes.fromhex("83 02")
+
+    transport = FakeTransport(receive_chunks=[response_header, response_pdu])
+    client = ModbusTcpClient(host="127.0.0.1")
+    client.transport = transport
+
+    request = ReadHoldingRegistersRequest(address=0, count=2)
+
+    response = await client.execute(request)
+
+    assert response == ExceptionResponse(function_code=0x03, exception_code=0x02)
+
+
+@pytest.mark.asyncio
+async def test_read_coils_builds_request_and_returns_bit_response() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+    captured: dict[str, object] = {}
+
+    async def fake_execute(request, unit_id=None):
+        captured["request"] = request
+        captured["unit_id"] = unit_id
+        return ReadBitsResponse(function_code=0x01, values=[True, False])
+
+    client.execute = fake_execute
+
+    response = await client.read_coils(address=0, count=2, unit_id=7)
+
+    assert isinstance(captured["request"], ReadCoilsRequest)
+    assert captured["request"].address == 0
+    assert captured["request"].count == 2
+    assert captured["unit_id"] == 7
+    assert response.values == [True, False]
+
+
+@pytest.mark.asyncio
+async def test_read_discrete_inputs_builds_request_and_returns_bit_response() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+    captured: dict[str, object] = {}
+
+    async def fake_execute(request, unit_id=None):
+        captured["request"] = request
+        captured["unit_id"] = unit_id
+        return ReadBitsResponse(function_code=0x02, values=[False, True])
+
+    client.execute = fake_execute
+
+    response = await client.read_discrete_inputs(address=0, count=2, unit_id=7)
+
+    assert isinstance(captured["request"], ReadDiscreteInputsRequest)
+    assert captured["request"].address == 0
+    assert captured["request"].count == 2
+    assert captured["unit_id"] == 7
+    assert response.values == [False, True]
+
+
+@pytest.mark.asyncio
 async def test_read_holding_registers_builds_request_and_returns_read_response() -> (
     None
 ):
@@ -141,6 +208,22 @@ async def test_read_holding_registers_builds_request_and_returns_read_response()
 
     assert response.function_code == 0x03
     assert response.values == [10, 20]
+
+
+@pytest.mark.asyncio
+async def test_read_holding_registers_raises_for_exception_response() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+
+    async def fake_execute(request, unit_id=None):
+        return ExceptionResponse(function_code=0x03, exception_code=0x02)
+
+    client.execute = fake_execute
+
+    with pytest.raises(ModbusExceptionResponseError) as exc_info:
+        await client.read_holding_registers(address=0, count=2)
+
+    assert exc_info.value.function_code == 0x03
+    assert exc_info.value.exception_code == 0x02
 
 
 @pytest.mark.asyncio
@@ -186,6 +269,70 @@ async def test_write_single_register_verifies_echoed_address_and_value() -> None
 
     assert response.function_code == 0x06
     assert response.value == 10
+
+
+@pytest.mark.asyncio
+async def test_write_single_coil_verifies_echoed_address_and_value() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+    captured: dict[str, object] = {}
+
+    async def fake_execute(request, unit_id=None):
+        captured["request"] = request
+        captured["unit_id"] = unit_id
+        return WriteSingleCoilResponse(function_code=0x05, address=0, value=True)
+
+    client.execute = fake_execute
+
+    response = await client.write_single_coil(address=0, value=True, unit_id=7)
+
+    assert isinstance(captured["request"], WriteSingleCoilRequest)
+    assert captured["request"].address == 0
+    assert captured["request"].value is True
+    assert captured["unit_id"] == 7
+    assert response.value is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("response_address", "response_value"),
+    [
+        (1, True),
+        (0, False),
+    ],
+)
+async def test_write_single_coil_rejects_mismatched_echo(
+    response_address: int,
+    response_value: bool,
+) -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+
+    async def fake_execute(request, unit_id=None):
+        return WriteSingleCoilResponse(
+            function_code=0x05,
+            address=response_address,
+            value=response_value,
+        )
+
+    client.execute = fake_execute
+
+    with pytest.raises(ValueError):
+        await client.write_single_coil(address=0, value=True)
+
+
+@pytest.mark.asyncio
+async def test_write_single_register_raises_for_exception_response() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+
+    async def fake_execute(request, unit_id=None):
+        return ExceptionResponse(function_code=0x06, exception_code=0x03)
+
+    client.execute = fake_execute
+
+    with pytest.raises(ModbusExceptionResponseError) as exc_info:
+        await client.write_single_register(address=0, value=10)
+
+    assert exc_info.value.function_code == 0x06
+    assert exc_info.value.exception_code == 0x03
 
 
 @pytest.mark.asyncio
@@ -239,6 +386,74 @@ async def test_write_multiple_registers_verifies_echoed_address_and_count() -> N
     assert response.function_code == 0x10
     assert response.address == 0
     assert response.count == 2
+
+
+@pytest.mark.asyncio
+async def test_write_multiple_coils_verifies_echoed_address_and_count() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+    captured: dict[str, object] = {}
+
+    async def fake_execute(request, unit_id=None):
+        captured["request"] = request
+        captured["unit_id"] = unit_id
+        return WriteMultipleCoilsResponse(function_code=0x0F, address=0, count=2)
+
+    client.execute = fake_execute
+
+    response = await client.write_multiple_coils(
+        address=0,
+        values=[True, False],
+        unit_id=7,
+    )
+
+    assert isinstance(captured["request"], WriteMultipleCoilsRequest)
+    assert captured["request"].address == 0
+    assert captured["request"].values == [True, False]
+    assert captured["unit_id"] == 7
+    assert response.count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("response_address", "response_count"),
+    [
+        (1, 2),
+        (0, 1),
+    ],
+)
+async def test_write_multiple_coils_rejects_mismatched_echo(
+    response_address: int,
+    response_count: int,
+) -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+
+    async def fake_execute(request, unit_id=None):
+        return WriteMultipleCoilsResponse(
+            function_code=0x0F,
+            address=response_address,
+            count=response_count,
+        )
+
+    client.execute = fake_execute
+
+    with pytest.raises(ValueError):
+        await client.write_multiple_coils(address=0, values=[True, False])
+
+
+@pytest.mark.asyncio
+async def test_write_multiple_registers_raises_for_exception_response() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+
+    async def fake_execute(request, unit_id=None):
+        return ExceptionResponse(function_code=0x10, exception_code=0x03)
+
+    client.execute = fake_execute
+
+    with pytest.raises(ModbusExceptionResponseError) as exc_info:
+        await client.write_multiple_registers(address=0, values=[10, 20])
+
+    assert exc_info.value.function_code == 0x10
+    assert exc_info.value.exception_code == 0x03
 
 
 @pytest.mark.asyncio

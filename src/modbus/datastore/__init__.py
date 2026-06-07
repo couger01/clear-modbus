@@ -1,3 +1,5 @@
+"""Datastore blocks, errors, and in-memory implementations."""
+
 from modbus.datastore.base import ModbusDataStore
 from modbus.datastore.blocks import BitBlock, RegisterBlock
 from modbus.datastore.errors import (

@@ -1,7 +1,11 @@
+"""Transport protocol shared by client implementations."""
+
 from typing import Protocol
 
 
 class Transport(Protocol):
+    """Asynchronous byte transport used by Modbus clients."""
+
     async def connect(self) -> None:
         """Open the underlying connection resource."""
         ...

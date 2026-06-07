@@ -1,0 +1,51 @@
+0.1 release checklist
+=====================
+
+Required before publishing
+--------------------------
+- Add a LICENSE file and make sure the selected license is reflected in
+  pyproject.toml.
+- Add project metadata in pyproject.toml:
+  - authors
+  - license/license-files
+  - classifiers
+  - project URLs
+- Verify that the PyPI project name clear-modbus is available from the
+  publishing account.
+- Decide whether the Python import package should remain modbus for 0.1 or be
+  renamed to clear_modbus to avoid import-name conflicts with other installed
+  packages.
+- Clean generated build artifacts before committing:
+  - build/
+  - dist/
+  - src/*.egg-info/
+- Commit the current implementation changes.
+- Run final validation:
+  - uv run pre-commit run --all-files
+  - uv run pytest
+  - uv build
+
+Recommended before publishing
+-----------------------------
+- Add a short changelog or release notes section for 0.1.0.
+- Add README examples for:
+  - write_single_register
+  - write_multiple_registers
+  - coils/discrete inputs
+  - simulator background tasks
+- Decide whether source distributions should include tests. If not, add
+  packaging configuration to exclude tests from the sdist.
+- Audit public exports in src/modbus/__init__.py and ensure every intended
+  public type is exported.
+- Make exception behavior consistent in high-level client helpers. Some
+  response-type and echoed-value mismatches still raise bare ValueError.
+- Consider adding smoke tests that install the built wheel in a clean
+  environment and import modbus.
+
+Nice to have after 0.1
+---------------------
+- Add Modbus ASCII support.
+- Add UDP or TLS transports if needed.
+- Add a custom function-code registry.
+- Add richer documentation under doc/ if the Sphinx setup is kept.
+- Add CI to run pre-commit, tests, and build on pull requests.

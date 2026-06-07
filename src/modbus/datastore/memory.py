@@ -1,8 +1,36 @@
+"""In-memory Modbus datastore implementation."""
+
 from modbus.datastore import InvalidAddressError
 from modbus.datastore.blocks import BitBlock, RegisterBlock
 
 
 class MemoryDataStore:
+    """Store Modbus data areas in lists of contiguous blocks.
+
+    Parameters
+    ----------
+    holding_registers : list[RegisterBlock] | None
+        Blocks backing function codes ``0x03`` and ``0x10``.
+    input_registers : list[RegisterBlock] | None
+        Blocks backing function code ``0x04``.
+    coils : list[BitBlock] | None
+        Blocks backing function codes ``0x01``, ``0x05``, and ``0x0F``.
+    discrete_inputs : list[BitBlock] | None
+        Blocks backing function code ``0x02``.
+
+    Attributes
+    ----------
+    holding_registers : list[RegisterBlock]
+        Blocks backing function codes ``0x03`` and ``0x10``.
+    input_registers : list[RegisterBlock]
+        Blocks backing function code ``0x04``.
+    coils : list[BitBlock]
+        Blocks backing function codes ``0x01``, ``0x05``, and ``0x0F``.
+    discrete_inputs : list[BitBlock]
+        Blocks backing function code ``0x02``.
+
+    """
+
     holding_registers: list[RegisterBlock]
     input_registers: list[RegisterBlock]
     coils: list[BitBlock]
@@ -27,26 +55,88 @@ class MemoryDataStore:
         _validate_no_overlapping_bit_blocks(self.discrete_inputs)
 
     def get_holding_registers(self, address: int, count: int) -> list[int]:
+        """Return holding-register values.
+
+        Parameters
+        ----------
+        address : int
+            First holding-register address.
+        count : int
+            Number of registers to read.
+
+        Returns
+        -------
+        list[int]
+            Register values.
+
+        """
         block = self._find_register_block(self.holding_registers, address, count)
         return block.read(address, count)
 
     def set_holding_registers(self, address: int, values: list[int]) -> None:
+        """Write holding-register values."""
         block = self._find_register_block(self.holding_registers, address, len(values))
         block.write(address, values)
 
     def get_input_registers(self, address: int, count: int) -> list[int]:
+        """Return input-register values.
+
+        Parameters
+        ----------
+        address : int
+            First input-register address.
+        count : int
+            Number of registers to read.
+
+        Returns
+        -------
+        list[int]
+            Register values.
+
+        """
         block = self._find_register_block(self.input_registers, address, count)
         return block.read(address, count)
 
     def get_coils(self, address: int, count: int) -> list[bool]:
+        """Return coil values.
+
+        Parameters
+        ----------
+        address : int
+            First coil address.
+        count : int
+            Number of coils to read.
+
+        Returns
+        -------
+        list[bool]
+            Coil values.
+
+        """
         block = self._find_bit_block(self.coils, address, count)
         return block.read(address, count)
 
     def set_coils(self, address: int, values: list[bool]) -> None:
+        """Write coil values."""
         block = self._find_bit_block(self.coils, address, len(values))
         block.write(address, values)
 
     def get_discrete_inputs(self, address: int, count: int) -> list[bool]:
+        """Return discrete-input values.
+
+        Parameters
+        ----------
+        address : int
+            First discrete-input address.
+        count : int
+            Number of inputs to read.
+
+        Returns
+        -------
+        list[bool]
+            Discrete-input values.
+
+        """
         block = self._find_bit_block(self.discrete_inputs, address, count)
         return block.read(address, count)
 

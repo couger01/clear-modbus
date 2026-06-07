@@ -1,6 +1,7 @@
 import pytest
 
 from modbus import ReadRegistersResponse
+from modbus.exceptions import ModbusResponseMismatchError
 from modbus.protocol.codec import ModbusTCPCodec, decode_tcp_frame, encode_tcp_frame
 from modbus.protocol.mbap import ModbusTCPFrame
 from modbus.protocol.pdu import ReadHoldingRegistersRequest
@@ -19,8 +20,8 @@ def test_decode_response_validates_transaction_id() -> None:
     codec = ModbusTCPCodec()
     request = ReadHoldingRegistersRequest(address=0, count=2)
 
-    data = bytes.fromhex("00 02 00 00 00 06 01 03 04 00 0A 00 14")
-    with pytest.raises(ValueError):
+    data = bytes.fromhex("00 02 00 00 00 07 01 03 04 00 0A 00 14")
+    with pytest.raises(ModbusResponseMismatchError):
         codec.decode_response(
             data=data, request=request, expected_transaction_id=1, expected_unit_id=1
         )
@@ -30,8 +31,8 @@ def test_decode_response_validates_unit_id() -> None:
     codec = ModbusTCPCodec()
     request = ReadHoldingRegistersRequest(address=0, count=2)
 
-    data = bytes.fromhex("00 01 00 00 00 06 02 03 04 00 0A 00 14")
-    with pytest.raises(ValueError):
+    data = bytes.fromhex("00 01 00 00 00 07 02 03 04 00 0A 00 14")
+    with pytest.raises(ModbusResponseMismatchError):
         codec.decode_response(
             data=data, request=request, expected_transaction_id=1, expected_unit_id=1
         )

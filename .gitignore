@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Sphinx-generated documentation
+doc/_build/
+doc/.doctrees/
+doc/.buildinfo

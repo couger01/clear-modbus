@@ -1,28 +1,49 @@
+"""Async Modbus RTU client."""
+
 from types import TracebackType
 from typing import Self
 
+from modbus.client_helpers import ModbusClientOperations
 from modbus.constants import DEFAULT_UNIT_ID
-from modbus.protocol.pdu import (
-    ReadHoldingRegistersRequest,
-    ReadInputRegistersRequest,
-    ReadRegistersResponse,
-    RequestPDU,
-    ResponsePDU,
-    WriteMultipleRegistersRequest,
-    WriteMultipleRegistersResponse,
-    WriteSingleRegisterRequest,
-    WriteSingleRegisterResponse,
-)
+from modbus.protocol.pdu import RequestPDU, ResponsePDU
 from modbus.protocol.rtu import (
     RTU_RESPONSE_PREFIX_SIZE,
     ModbusRTUCodec,
-    rtu_read_register_response_size,
+    rtu_byte_count_response_size,
     rtu_response_size_from_prefix,
 )
 from modbus.transport import SerialTransport, Transport
 
 
-class ModbusRtuClient:
+class ModbusRtuClient(ModbusClientOperations):
+    """Client for Modbus RTU serial devices.
+
+    Parameters
+    ----------
+    port : str
+        Serial device path.
+    unit_id : int
+        Default Modbus unit identifier.
+    baudrate : int
+        Serial baud rate.
+    timeout : float
+        Timeout in seconds for serial operations.
+    transport : Transport | None
+        Custom transport, primarily useful for tests.
+
+    Attributes
+    ----------
+    port : str
+        Serial device path.
+    unit_id : int
+        Default Modbus unit identifier.
+    baudrate : int
+        Serial baud rate.
+    timeout : float
+        Timeout in seconds for serial operations.
+
+    """
+
     port: str
     unit_id: int
     baudrate: int
@@ -50,6 +71,14 @@ class ModbusRtuClient:
         self.codec = ModbusRTUCodec()
 
     async def __aenter__(self) -> Self:
+        """Connect and return this client.
+
+        Returns
+        -------
+        Self
+            Connected client.
+
+        """
         await self.connect()
         return self
 
@@ -59,17 +88,36 @@ class ModbusRtuClient:
         exc: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
+        """Close the client when leaving an async context."""
         await self.close()
 
     async def connect(self) -> None:
+        """Open the underlying serial transport."""
         await self.transport.connect()
 
     async def close(self) -> None:
+        """Close the underlying serial transport."""
         await self.transport.close()
 
     async def execute(
         self, request: RequestPDU, unit_id: int | None = None
     ) -> ResponsePDU:
+        """Send a request PDU and decode the RTU response PDU.
+
+        Parameters
+        ----------
+        request : RequestPDU
+            Request PDU to encode and send.
+        unit_id : int | None
+            Unit identifier override. Defaults to the client's configured
+            ``unit_id``.
+
+        Returns
+        -------
+        ResponsePDU
+            Decoded response PDU.
+
+        """
         if unit_id is None:
             unit_id = self.unit_id
 
@@ -80,7 +128,7 @@ class ModbusRtuClient:
         response_size = rtu_response_size_from_prefix(prefix, request)
         if response_size is None:
             byte_count_data = await self.transport.receive(1)
-            response_size = rtu_read_register_response_size(byte_count_data[0])
+            response_size = rtu_byte_count_response_size(byte_count_data[0])
             remaining_size = response_size - RTU_RESPONSE_PREFIX_SIZE - 1
             data = (
                 prefix + byte_count_data + await self.transport.receive(remaining_size)
@@ -94,59 +142,3 @@ class ModbusRtuClient:
             request=request,
             expected_unit_id=unit_id,
         )
-
-    async def read_holding_registers(
-        self,
-        address: int,
-        count: int,
-        unit_id: int | None = None,
-    ) -> ReadRegistersResponse:
-        request = ReadHoldingRegistersRequest(address=address, count=count)
-        response = await self.execute(request, unit_id=unit_id)
-        if not isinstance(response, ReadRegistersResponse):
-            raise ValueError()
-        return response
-
-    async def read_input_registers(
-        self,
-        address: int,
-        count: int,
-        unit_id: int | None = None,
-    ) -> ReadRegistersResponse:
-        request = ReadInputRegistersRequest(address=address, count=count)
-        response = await self.execute(request, unit_id=unit_id)
-        if not isinstance(response, ReadRegistersResponse):
-            raise ValueError()
-        return response
-
-    async def write_single_register(
-        self,
-        address: int,
-        value: int,
-        unit_id: int | None = None,
-    ) -> WriteSingleRegisterResponse:
-        request = WriteSingleRegisterRequest(address=address, value=value)
-        response = await self.execute(request, unit_id=unit_id)
-        if not isinstance(response, WriteSingleRegisterResponse):
-            raise ValueError()
-        if response.address != address:
-            raise ValueError()
-        if response.value != value:
-            raise ValueError()
-        return response
-
-    async def write_multiple_registers(
-        self,
-        address: int,
-        values: list[int],
-        unit_id: int | None = None,
-    ) -> WriteMultipleRegistersResponse:
-        request = WriteMultipleRegistersRequest(address=address, values=values)
-        response = await self.execute(request, unit_id=unit_id)
-        if not isinstance(response, WriteMultipleRegistersResponse):
-            raise ValueError()
-        if response.address != address:
-            raise ValueError()
-        if response.count != len(values):
-            raise ValueError()
-        return response

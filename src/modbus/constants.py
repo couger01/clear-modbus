@@ -1,3 +1,5 @@
+"""Shared constants for Modbus clients, servers, and codecs."""
+
 DEFAULT_MODBUS_TCP_PORT = 502
 DEFAULT_UNIT_ID = 1
 MODBUS_TCP_PROTOCOL_ID = 0

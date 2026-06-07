@@ -1,7 +1,11 @@
+"""Modbus function and exception code helpers."""
+
 from enum import IntEnum
 
 
 class FunctionCode(IntEnum):
+    """Standard Modbus function codes supported by this package."""
+
     READ_COILS = 0x01
     READ_DISCRETE_INPUTS = 0x02
     READ_HOLDING_REGISTERS = 0x03
@@ -14,6 +18,8 @@ class FunctionCode(IntEnum):
 
 
 class ExceptionCode(IntEnum):
+    """Standard Modbus exception response codes."""
+
     ILLEGAL_FUNCTION = 0x01
     ILLEGAL_DATA_ADDRESS = 0x02
     ILLEGAL_DATA_VALUE = 0x03
@@ -26,12 +32,51 @@ class ExceptionCode(IntEnum):
 
 
 def is_exception_function_code(function_code: int) -> bool:
+    """Return whether the high exception bit is set.
+
+    Parameters
+    ----------
+    function_code : int
+        Function code byte.
+
+    Returns
+    -------
+    bool
+        ``True`` when bit ``0x80`` is set.
+
+    """
     return bool(function_code & 0x80)
 
 
 def strip_exception_bit(function_code: int) -> int:
+    """Strip the high exception bit from a function code.
+
+    Parameters
+    ----------
+    function_code : int
+        Function code byte.
+
+    Returns
+    -------
+    int
+        Function code with bit ``0x80`` cleared.
+
+    """
     return function_code & 0x7F
 
 
 def add_exception_bit(function_code: int) -> int:
+    """Set the high exception bit on a function code.
+
+    Parameters
+    ----------
+    function_code : int
+        Function code byte.
+
+    Returns
+    -------
+    int
+        Function code with bit ``0x80`` set.
+
+    """
     return function_code | 0x80

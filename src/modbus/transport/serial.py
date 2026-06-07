@@ -1,3 +1,5 @@
+"""Async serial transport for Modbus RTU connections."""
+
 import asyncio
 from functools import partial
 from types import TracebackType
@@ -11,6 +13,28 @@ from modbus.exceptions import (
 
 
 class SerialTransport:
+    """Asynchronous serial byte transport.
+
+    Parameters
+    ----------
+    port : str
+        Serial device path, such as ``"/dev/ttyUSB0"``.
+    baudrate : int
+        Serial baud rate.
+    timeout : float
+        Timeout in seconds for connect, send, and receive operations.
+
+    Attributes
+    ----------
+    port : str
+        Serial device path.
+    baudrate : int
+        Serial baud rate.
+    timeout : float
+        Timeout in seconds for connect, send, and receive operations.
+
+    """
+
     port: str
     baudrate: int
     timeout: float
@@ -27,6 +51,14 @@ class SerialTransport:
         self.serial_connection = None
 
     async def __aenter__(self) -> Self:
+        """Open the serial connection and return this transport.
+
+        Returns
+        -------
+        Self
+            Connected transport.
+
+        """
         await self.connect()
         return self
 
@@ -36,9 +68,18 @@ class SerialTransport:
         exc: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
+        """Close the serial connection when leaving an async context."""
         await self.close()
 
     async def connect(self) -> None:
+        """Open the configured serial port.
+
+        Raises
+        ------
+        ModbusConnectionError
+            If pyserial is unavailable or the serial port cannot be opened.
+
+        """
         if self.serial_connection is not None:
             await self.close()
 
@@ -64,6 +105,7 @@ class SerialTransport:
             raise ModbusConnectionError(exc) from exc
 
     async def close(self) -> None:
+        """Close the serial port if it is open."""
         if self.serial_connection is None:
             return
 
@@ -72,6 +114,23 @@ class SerialTransport:
         await asyncio.to_thread(serial_connection.close)
 
     async def send(self, data: bytes) -> None:
+        """Write all bytes to the serial port.
+
+        Parameters
+        ----------
+        data : bytes
+            Bytes to write.
+
+        Raises
+        ------
+        ModbusConnectionError
+            If the transport is not connected.
+        ModbusTimeoutError
+            If the write exceeds ``timeout``.
+        ModbusTransportError
+            If the serial write fails or writes only part of ``data``.
+
+        """
         if self.serial_connection is None:
             raise ModbusConnectionError()
 
@@ -88,6 +147,30 @@ class SerialTransport:
             raise ModbusTransportError(exc) from exc
 
     async def receive(self, size: int) -> bytes:
+        """Read exactly ``size`` bytes from the serial port.
+
+        Parameters
+        ----------
+        size : int
+            Number of bytes to read.
+
+        Returns
+        -------
+        bytes
+            Bytes read from the serial port.
+
+        Raises
+        ------
+        ValueError
+            If ``size`` is not positive.
+        ModbusConnectionError
+            If the transport is not connected.
+        ModbusTimeoutError
+            If the read exceeds ``timeout``.
+        ModbusTransportError
+            If the serial read fails or returns fewer bytes than requested.
+
+        """
         if self.serial_connection is None:
             raise ModbusConnectionError()
         if size <= 0:

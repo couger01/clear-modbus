@@ -1,14 +1,23 @@
+"""Async Modbus TCP server backed by a datastore."""
+
 import asyncio
 from types import TracebackType
 from typing import Self
 
 from modbus import (
     ExceptionResponse,
+    ReadBitsResponse,
+    ReadCoilsRequest,
+    ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
+    WriteMultipleCoilsRequest,
+    WriteMultipleCoilsResponse,
     WriteMultipleRegistersRequest,
     WriteMultipleRegistersResponse,
+    WriteSingleCoilRequest,
+    WriteSingleCoilResponse,
     WriteSingleRegisterRequest,
     WriteSingleRegisterResponse,
 )
@@ -27,6 +36,28 @@ from modbus.protocol.pdu import RequestPDU, ResponsePDU, decode_request_pdu
 
 
 class ModbusTcpServer:
+    """Modbus TCP server.
+
+    Parameters
+    ----------
+    host : str
+        Interface address to bind.
+    port : int
+        TCP port to bind.
+    datastore : ModbusDataStore | None
+        Datastore used to service requests.
+
+    Attributes
+    ----------
+    host : str
+        Interface address to bind.
+    port : int
+        TCP port to bind.
+    datastore : ModbusDataStore
+        Datastore used to service requests.
+
+    """
+
     host: str
     port: int
     datastore: ModbusDataStore
@@ -43,6 +74,14 @@ class ModbusTcpServer:
         self._server: asyncio.Server | None = None
 
     async def __aenter__(self) -> Self:
+        """Start the server and return this instance.
+
+        Returns
+        -------
+        Self
+            Running server.
+
+        """
         await self.start()
         return self
 
@@ -52,9 +91,11 @@ class ModbusTcpServer:
         exc: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
+        """Stop the server when leaving an async context."""
         await self.stop()
 
     async def start(self) -> None:
+        """Bind the TCP socket and begin accepting clients."""
         if self._server is not None:
             return
         self._server = await asyncio.start_server(
@@ -111,6 +152,7 @@ class ModbusTcpServer:
             await writer.wait_closed()
 
     async def stop(self) -> None:
+        """Stop accepting clients and close the server socket."""
         if self._server is None:
             return
 
@@ -119,8 +161,31 @@ class ModbusTcpServer:
         self._server = None
 
     async def handle_request(self, request: RequestPDU) -> ResponsePDU:
+        """Handle one decoded request PDU.
+
+        Parameters
+        ----------
+        request : RequestPDU
+            Decoded request PDU.
+
+        Returns
+        -------
+        ResponsePDU
+            Normal response PDU or exception response PDU.
+
+        """
         try:
             match request:
+                case ReadCoilsRequest(address=address, count=count):
+                    values = self.datastore.get_coils(address, count)
+                    return ReadBitsResponse(
+                        function_code=request.function_code, values=values
+                    )
+                case ReadDiscreteInputsRequest(address=address, count=count):
+                    values = self.datastore.get_discrete_inputs(address, count)
+                    return ReadBitsResponse(
+                        function_code=request.function_code, values=values
+                    )
                 case ReadHoldingRegistersRequest(address=address, count=count):
                     values = self.datastore.get_holding_registers(address, count)
                     return ReadRegistersResponse(
@@ -131,12 +196,26 @@ class ModbusTcpServer:
                     return ReadRegistersResponse(
                         function_code=request.function_code, values=values
                     )
+                case WriteSingleCoilRequest(address=address, value=value):
+                    self.datastore.set_coils(address, [value])
+                    return WriteSingleCoilResponse(
+                        function_code=request.function_code,
+                        address=address,
+                        value=value,
+                    )
                 case WriteSingleRegisterRequest(address=address, value=value):
                     self.datastore.set_holding_registers(address, [value])
                     return WriteSingleRegisterResponse(
                         function_code=request.function_code,
                         address=address,
                         value=value,
+                    )
+                case WriteMultipleCoilsRequest(address=address, values=values):
+                    self.datastore.set_coils(address, values)
+                    return WriteMultipleCoilsResponse(
+                        function_code=request.function_code,
+                        address=address,
+                        count=len(values),
                     )
                 case WriteMultipleRegistersRequest(address=address, values=values):
                     self.datastore.set_holding_registers(address, values)
