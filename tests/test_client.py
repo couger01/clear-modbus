@@ -2,7 +2,10 @@ import pytest
 
 from clear_modbus.client import ModbusTcpClient
 from clear_modbus.constants import DEFAULT_MODBUS_TCP_PORT
-from clear_modbus.exceptions import ModbusExceptionResponseError
+from clear_modbus.exceptions import (
+    ModbusExceptionResponseError,
+    ModbusResponseMismatchError,
+)
 from clear_modbus.protocol.codec import ModbusTCPCodec
 from clear_modbus.protocol.pdu import (
     ExceptionResponse,
@@ -315,7 +318,7 @@ async def test_write_single_coil_rejects_mismatched_echo(
 
     client.execute = fake_execute
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusResponseMismatchError):
         await client.write_single_coil(address=0, value=True)
 
 
@@ -358,7 +361,7 @@ async def test_write_single_register_rejects_mismatched_echo(
 
     client.execute = fake_execute
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusResponseMismatchError):
         await client.write_single_register(address=0, value=10)
 
 
@@ -436,7 +439,7 @@ async def test_write_multiple_coils_rejects_mismatched_echo(
 
     client.execute = fake_execute
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusResponseMismatchError):
         await client.write_multiple_coils(address=0, values=[True, False])
 
 
@@ -479,5 +482,5 @@ async def test_write_multiple_registers_rejects_mismatched_echo(
 
     client.execute = fake_execute
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ModbusResponseMismatchError):
         await client.write_multiple_registers(address=0, values=[10, 20])

@@ -8,7 +8,6 @@ import tempfile
 import venv
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
 IMPORT_CHECK = """
@@ -27,8 +26,17 @@ assert ReadHoldingRegistersRequest(address=0, count=1).encode() == b"\\x03\\x00\
 
 
 def main() -> int:
-    """Install the newest built wheel into a temporary venv and import it."""
-    wheels = sorted(DIST.glob("clear_modbus-*.whl"), key=lambda path: path.stat().st_mtime)
+    """Install the newest built wheel into a temporary venv and import it.
+
+    Returns
+    -------
+    exit_code : `int`
+        The exit code of the script.
+
+    """
+    wheels = sorted(
+        DIST.glob("clear_modbus-*.whl"), key=lambda path: path.stat().st_mtime
+    )
     if not wheels:
         print("No built wheel found. Run `uv build` first.", file=sys.stderr)
         return 1
@@ -38,7 +46,9 @@ def main() -> int:
         venv_dir = Path(temp_dir) / ".venv"
         venv.EnvBuilder(with_pip=True).create(venv_dir)
 
-        python = venv_dir / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
+        python = venv_dir / (
+            "Scripts/python.exe" if sys.platform == "win32" else "bin/python"
+        )
         subprocess.run(
             [str(python), "-m", "pip", "install", "--no-deps", str(wheel)],
             check=True,

@@ -1,6 +1,9 @@
 """Shared high-level operations for Modbus clients."""
 
-from clear_modbus.exceptions import ModbusExceptionResponseError
+from clear_modbus.exceptions import (
+    ModbusExceptionResponseError,
+    ModbusResponseMismatchError,
+)
 from clear_modbus.protocol.pdu import (
     ExceptionResponse,
     ReadBitsResponse,
@@ -97,7 +100,7 @@ class ModbusClientOperations:
 
         Raises
         ------
-        ValueError
+        ModbusResponseMismatchError
             If the decoded response is not a read-bits response.
 
         """
@@ -105,7 +108,7 @@ class ModbusClientOperations:
         response = await self.execute(request, unit_id=unit_id)
         raise_for_exception_response(response)
         if not isinstance(response, ReadBitsResponse):
-            raise ValueError()
+            raise ModbusResponseMismatchError("Expected ReadBitsResponse.")
         return response
 
     async def read_discrete_inputs(
@@ -132,7 +135,7 @@ class ModbusClientOperations:
 
         Raises
         ------
-        ValueError
+        ModbusResponseMismatchError
             If the decoded response is not a read-bits response.
 
         """
@@ -140,7 +143,7 @@ class ModbusClientOperations:
         response = await self.execute(request, unit_id=unit_id)
         raise_for_exception_response(response)
         if not isinstance(response, ReadBitsResponse):
-            raise ValueError()
+            raise ModbusResponseMismatchError("Expected ReadBitsResponse.")
         return response
 
     async def read_holding_registers(
@@ -167,7 +170,7 @@ class ModbusClientOperations:
 
         Raises
         ------
-        ValueError
+        ModbusResponseMismatchError
             If the decoded response is not a read-registers response.
 
         """
@@ -175,7 +178,7 @@ class ModbusClientOperations:
         response = await self.execute(request, unit_id=unit_id)
         raise_for_exception_response(response)
         if not isinstance(response, ReadRegistersResponse):
-            raise ValueError()
+            raise ModbusResponseMismatchError("Expected ReadRegistersResponse.")
         return response
 
     async def read_input_registers(
@@ -202,7 +205,7 @@ class ModbusClientOperations:
 
         Raises
         ------
-        ValueError
+        ModbusResponseMismatchError
             If the decoded response is not a read-registers response.
 
         """
@@ -210,7 +213,7 @@ class ModbusClientOperations:
         response = await self.execute(request, unit_id=unit_id)
         raise_for_exception_response(response)
         if not isinstance(response, ReadRegistersResponse):
-            raise ValueError()
+            raise ModbusResponseMismatchError("Expected ReadRegistersResponse.")
         return response
 
     async def write_single_register(
@@ -237,7 +240,7 @@ class ModbusClientOperations:
 
         Raises
         ------
-        ValueError
+        ModbusResponseMismatchError
             If the decoded response type or echoed address/value is invalid.
 
         """
@@ -245,11 +248,15 @@ class ModbusClientOperations:
         response = await self.execute(request, unit_id=unit_id)
         raise_for_exception_response(response)
         if not isinstance(response, WriteSingleRegisterResponse):
-            raise ValueError()
+            raise ModbusResponseMismatchError("Expected WriteSingleRegisterResponse.")
         if response.address != address:
-            raise ValueError()
+            raise ModbusResponseMismatchError(
+                "Response address does not match expected address."
+            )
         if response.value != value:
-            raise ValueError()
+            raise ModbusResponseMismatchError(
+                "Response value does not match expected value."
+            )
         return response
 
     async def write_single_coil(
@@ -276,7 +283,7 @@ class ModbusClientOperations:
 
         Raises
         ------
-        ValueError
+        ModbusResponseMismatchError
             If the decoded response type or echoed address/value is invalid.
 
         """
@@ -284,11 +291,15 @@ class ModbusClientOperations:
         response = await self.execute(request, unit_id=unit_id)
         raise_for_exception_response(response)
         if not isinstance(response, WriteSingleCoilResponse):
-            raise ValueError()
+            raise ModbusResponseMismatchError("Expected WriteSingleCoilResponse.")
         if response.address != address:
-            raise ValueError()
+            raise ModbusResponseMismatchError(
+                "Response address does not match expected address."
+            )
         if response.value != value:
-            raise ValueError()
+            raise ModbusResponseMismatchError(
+                "Response value does not match expected value."
+            )
         return response
 
     async def write_multiple_registers(
@@ -315,7 +326,7 @@ class ModbusClientOperations:
 
         Raises
         ------
-        ValueError
+        ModbusResponseMismatchError
             If the decoded response type or echoed address/count is invalid.
 
         """
@@ -323,11 +334,17 @@ class ModbusClientOperations:
         response = await self.execute(request, unit_id=unit_id)
         raise_for_exception_response(response)
         if not isinstance(response, WriteMultipleRegistersResponse):
-            raise ValueError()
+            raise ModbusResponseMismatchError(
+                "Expected WriteMultipleRegistersResponse."
+            )
         if response.address != address:
-            raise ValueError()
+            raise ModbusResponseMismatchError(
+                "Response address does not match expected address."
+            )
         if response.count != len(values):
-            raise ValueError()
+            raise ModbusResponseMismatchError(
+                "Response count does not match expected count."
+            )
         return response
 
     async def write_multiple_coils(
@@ -354,7 +371,7 @@ class ModbusClientOperations:
 
         Raises
         ------
-        ValueError
+        ModbusResponseMismatchError
             If the decoded response type or echoed address/count is invalid.
 
         """
@@ -362,9 +379,13 @@ class ModbusClientOperations:
         response = await self.execute(request, unit_id=unit_id)
         raise_for_exception_response(response)
         if not isinstance(response, WriteMultipleCoilsResponse):
-            raise ValueError()
+            raise ModbusResponseMismatchError("Expected WriteMultipleCoilsResponse.")
         if response.address != address:
-            raise ValueError()
+            raise ModbusResponseMismatchError(
+                "Response address does not match expected address."
+            )
         if response.count != len(values):
-            raise ValueError()
+            raise ModbusResponseMismatchError(
+                "Response count does not match expected count."
+            )
         return response
