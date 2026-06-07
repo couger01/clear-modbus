@@ -12,6 +12,7 @@ from clear_modbus import (
     decode_response_pdu,
 )
 from clear_modbus.exceptions import ModbusPDUError
+from clear_modbus.protocol.functions import FunctionCode
 from clear_modbus.protocol.pdu import (
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
@@ -24,6 +25,103 @@ from clear_modbus.protocol.pdu import (
     pack_bits,
     unpack_bits,
 )
+
+INTEROPERABILITY_PDU_CASES = [
+    pytest.param(
+        FunctionCode.READ_COILS,
+        ReadCoilsRequest(address=0, count=9),
+        bytes.fromhex("01 00 00 00 09"),
+        bytes.fromhex("01 02 8D 01"),
+        ReadBitsResponse(
+            function_code=0x01,
+            values=[True, False, True, True, False, False, False, True, True],
+        ),
+        id="read-coils",
+    ),
+    pytest.param(
+        FunctionCode.READ_DISCRETE_INPUTS,
+        ReadDiscreteInputsRequest(address=0, count=2),
+        bytes.fromhex("02 00 00 00 02"),
+        bytes.fromhex("02 01 02"),
+        ReadBitsResponse(function_code=0x02, values=[False, True]),
+        id="read-discrete-inputs",
+    ),
+    pytest.param(
+        FunctionCode.READ_HOLDING_REGISTERS,
+        ReadHoldingRegistersRequest(address=0x006B, count=3),
+        bytes.fromhex("03 00 6B 00 03"),
+        bytes.fromhex("03 06 02 2B 00 00 00 64"),
+        ReadRegistersResponse(function_code=0x03, values=[555, 0, 100]),
+        id="read-holding-registers",
+    ),
+    pytest.param(
+        FunctionCode.READ_INPUT_REGISTERS,
+        ReadInputRegistersRequest(address=0, count=2),
+        bytes.fromhex("04 00 00 00 02"),
+        bytes.fromhex("04 04 00 0A 00 14"),
+        ReadRegistersResponse(function_code=0x04, values=[10, 20]),
+        id="read-input-registers",
+    ),
+    pytest.param(
+        FunctionCode.WRITE_SINGLE_COIL,
+        WriteSingleCoilRequest(address=0, value=True),
+        bytes.fromhex("05 00 00 FF 00"),
+        bytes.fromhex("05 00 00 FF 00"),
+        WriteSingleCoilResponse(function_code=0x05, address=0, value=True),
+        id="write-single-coil",
+    ),
+    pytest.param(
+        FunctionCode.WRITE_SINGLE_REGISTER,
+        WriteSingleRegisterRequest(address=0, value=1),
+        bytes.fromhex("06 00 00 00 01"),
+        bytes.fromhex("06 00 00 00 01"),
+        WriteSingleRegisterResponse(function_code=0x06, address=0, value=1),
+        id="write-single-register",
+    ),
+    pytest.param(
+        FunctionCode.WRITE_MULTIPLE_COILS,
+        WriteMultipleCoilsRequest(
+            address=0,
+            values=[True, False, True, True, False, False, False, True, True],
+        ),
+        bytes.fromhex("0F 00 00 00 09 02 8D 01"),
+        bytes.fromhex("0F 00 00 00 09"),
+        WriteMultipleCoilsResponse(function_code=0x0F, address=0, count=9),
+        id="write-multiple-coils",
+    ),
+    pytest.param(
+        FunctionCode.WRITE_MULTIPLE_REGISTERS,
+        WriteMultipleRegistersRequest(address=0, values=[10, 20]),
+        bytes.fromhex("10 00 00 00 02 04 00 0A 00 14"),
+        bytes.fromhex("10 00 00 00 02"),
+        WriteMultipleRegistersResponse(function_code=0x10, address=0, count=2),
+        id="write-multiple-registers",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "function_code,request_pdu_obj,request_pdu,response_pdu,expected_response",
+    INTEROPERABILITY_PDU_CASES,
+)
+def test_pdu_interoperability_function_code(
+    function_code,
+    request_pdu_obj,
+    request_pdu,
+    response_pdu,
+    expected_response,
+) -> None:
+    assert request_pdu_obj.function_code == function_code
+    assert request_pdu_obj.encode() == request_pdu
+    assert decode_request_pdu(request_pdu) == request_pdu_obj
+    assert (
+        decode_response_pdu(request=request_pdu_obj, data=response_pdu)
+        == expected_response
+    )
+    assert decode_response_pdu(
+        request=request_pdu_obj,
+        data=bytes([function_code | 0x80, 0x02]),
+    ) == ExceptionResponse(function_code=function_code, exception_code=0x02)
 
 
 def test_read_holding_registers_request_encodes_expected_pdu() -> None:
