@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import ClassVar
+
 import pytest
 
 from clear_modbus import ReadRegistersResponse
@@ -9,6 +12,63 @@ from clear_modbus.protocol.codec import (
 )
 from clear_modbus.protocol.mbap import ModbusTCPFrame
 from clear_modbus.protocol.pdu import ReadHoldingRegistersRequest
+from clear_modbus.protocol.registry import default_function_code_registry
+
+
+@dataclass(frozen=True)
+class CustomCodecRequest:
+    value: int
+
+    function_code: ClassVar[int] = 0x41
+
+    def encode(self) -> bytes:
+        return bytes([self.function_code, self.value])
+
+
+@dataclass(frozen=True)
+class CustomCodecResponse:
+    value: int
+    request_value: int
+
+    function_code: ClassVar[int] = 0x41
+
+    def encode(self) -> bytes:
+        return bytes([self.function_code, self.value])
+
+
+@pytest.fixture
+def function_code_registry():
+    request_decoders = default_function_code_registry.request_decoders.copy()
+    response_decoders = default_function_code_registry.response_decoders.copy()
+    try:
+        yield default_function_code_registry
+    finally:
+        default_function_code_registry.request_decoders.clear()
+        default_function_code_registry.request_decoders.update(request_decoders)
+        default_function_code_registry.response_decoders.clear()
+        default_function_code_registry.response_decoders.update(response_decoders)
+
+
+def test_tcp_codec_uses_custom_function_code_response_decoder(
+    function_code_registry,
+) -> None:
+    codec = ModbusTCPCodec()
+    request = CustomCodecRequest(value=10)
+
+    def decode_custom_response(payload: bytes, request_pdu) -> CustomCodecResponse:
+        assert isinstance(request_pdu, CustomCodecRequest)
+        return CustomCodecResponse(value=payload[0], request_value=request_pdu.value)
+
+    function_code_registry.register_response_decoder(0x41, decode_custom_response)
+
+    response = codec.decode_response(
+        data=bytes.fromhex("00 01 00 00 00 03 11 41 14"),
+        request=request,
+        expected_transaction_id=1,
+        expected_unit_id=17,
+    )
+
+    assert response == CustomCodecResponse(value=20, request_value=10)
 
 
 def test_tcp_codec_decodes_interoperability_read_holding_registers_response() -> None:

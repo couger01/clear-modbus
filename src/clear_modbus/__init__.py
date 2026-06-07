@@ -25,6 +25,12 @@ from clear_modbus.protocol.pdu import (
     decode_request_pdu,
     decode_response_pdu,
 )
+from clear_modbus.protocol.registry import (
+    CustomFunctionCodeRegistry,
+    RequestDecoder,
+    ResponseDecoder,
+    default_function_code_registry,
+)
 from clear_modbus.rtu_client import ModbusRtuClient
 from clear_modbus.simulator import (
     BitRange,
@@ -35,6 +41,7 @@ from clear_modbus.simulator import (
 
 __all__ = [
     "BitRange",
+    "CustomFunctionCodeRegistry",
     "ExceptionResponse",
     "ModbusExceptionResponseError",
     "ModbusRtuClient",
@@ -42,6 +49,8 @@ __all__ = [
     "ModbusTcpClient",
     "ReadBitsResponse",
     "ReadCoilsRequest",
+    "RequestDecoder",
+    "ResponseDecoder",
     "ReadDiscreteInputsRequest",
     "ReadHoldingRegistersRequest",
     "ReadInputRegistersRequest",
@@ -58,4 +67,5 @@ __all__ = [
     "WriteSingleRegisterResponse",
     "decode_request_pdu",
     "decode_response_pdu",
+    "default_function_code_registry",
 ]
