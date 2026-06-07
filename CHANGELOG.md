@@ -4,6 +4,19 @@ Release notes are managed with [Towncrier](https://towncrier.readthedocs.io/).
 
 <!-- towncrier release notes start -->
 
+## 0.1.1 (2026-06-07)
+
+### Documentation
+
+- Added task-oriented Sphinx guide pages for getting started, clients, server,
+  simulator, datastore, protocol behavior, error handling, and release notes. ([#1](https://github.com/couger01/clear-modbus/issues/1))
+
+### Miscellaneous
+
+- Added interoperability fixture coverage for Modbus TCP and RTU request/response frames, including PDU dispatch, MBAP handling, RTU CRC validation, client execute paths, write echoes, and exception responses. ([#2](https://github.com/couger01/clear-modbus/issues/2))
+- Added transport timeout and disconnect behavior tests for TCP and serial transports, including close failures, connection failures, write failures, partial writes, short reads, and timeout error mapping. ([#3](https://github.com/couger01/clear-modbus/issues/3))
+
+
 ## 0.1.0 (2026-06-07)
 
 ### Features
