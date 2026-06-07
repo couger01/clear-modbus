@@ -108,7 +108,10 @@ class TCPTransport:
         self.stream_writer = None
         self.stream_reader = None
         writer.close()
-        await writer.wait_closed()
+        try:
+            await writer.wait_closed()
+        except Exception:
+            pass
 
     async def send(self, data: bytes) -> None:
         """Write bytes to the TCP stream.

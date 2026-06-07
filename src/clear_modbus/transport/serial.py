@@ -14,6 +14,15 @@ from clear_modbus.exceptions import (
 __all__ = ["SerialTransport"]
 
 
+def _is_serial_timeout_error(exc: Exception) -> bool:
+    try:
+        import serial
+    except ImportError:
+        return False
+
+    return isinstance(exc, serial.SerialTimeoutException)
+
+
 class SerialTransport:
     """Asynchronous serial byte transport.
 
@@ -113,7 +122,10 @@ class SerialTransport:
 
         serial_connection = self.serial_connection
         self.serial_connection = None
-        await asyncio.to_thread(serial_connection.close)
+        try:
+            await asyncio.to_thread(serial_connection.close)
+        except Exception:
+            pass
 
     async def send(self, data: bytes) -> None:
         """Write all bytes to the serial port.
@@ -146,6 +158,8 @@ class SerialTransport:
         except ModbusTransportError:
             raise
         except Exception as exc:
+            if _is_serial_timeout_error(exc):
+                raise ModbusTimeoutError(exc) from exc
             raise ModbusTransportError(exc) from exc
 
     async def receive(self, size: int) -> bytes:
