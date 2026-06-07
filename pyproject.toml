@@ -1,6 +1,6 @@
 [project]
 name = "clear-modbus"
-version = "0.1.0"
+version = "0.1.1"
 description = "Async Python Modbus TCP and RTU client/server toolkit with simulator support."
 readme = "README.md"
 requires-python = ">=3.12"

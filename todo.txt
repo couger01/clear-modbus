@@ -1,12 +1,6 @@
 clear-modbus roadmap
 =====================
 
-0.1.0: first public release
----------------------------
-Goal: publish a small, usable alpha that supports core Modbus TCP and RTU
-client/server workflows, includes simulator support, and has enough docs for
-early users to try it safely.
-
 0.1.x: stabilization
 --------------------
 Goal: smooth rough edges found by initial use without expanding the public API
