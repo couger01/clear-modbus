@@ -34,6 +34,8 @@ from clear_modbus.protocol.functions import ExceptionCode
 from clear_modbus.protocol.mbap import MBAPHeader, ModbusTCPFrame
 from clear_modbus.protocol.pdu import RequestPDU, ResponsePDU, decode_request_pdu
 
+__all__ = ["ModbusTcpServer"]
+
 
 class ModbusTcpServer:
     """Modbus TCP server.

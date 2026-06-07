@@ -14,6 +14,34 @@ MAX_WRITE_BITS = 1968
 COIL_ON = 0xFF00
 COIL_OFF = 0x0000
 
+__all__ = [
+    "ExceptionResponse",
+    "ReadBitsResponse",
+    "ReadCoilsRequest",
+    "ReadDiscreteInputsRequest",
+    "ReadHoldingRegistersRequest",
+    "ReadInputRegistersRequest",
+    "ReadRegistersResponse",
+    "RequestPDU",
+    "ResponsePDU",
+    "WriteMultipleCoilsRequest",
+    "WriteMultipleCoilsResponse",
+    "WriteMultipleRegistersRequest",
+    "WriteMultipleRegistersResponse",
+    "WriteSingleCoilRequest",
+    "WriteSingleCoilResponse",
+    "WriteSingleRegisterRequest",
+    "WriteSingleRegisterResponse",
+    "decode_request_pdu",
+    "decode_response_pdu",
+    "pack_bits",
+    "unpack_bits",
+    "validate_bit_count",
+    "validate_register_address",
+    "validate_register_count",
+    "validate_register_value",
+]
+
 
 def validate_register_address(address: int) -> None:
     """Validate a Modbus address.

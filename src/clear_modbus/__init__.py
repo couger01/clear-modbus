@@ -26,7 +26,12 @@ from clear_modbus.protocol.pdu import (
     decode_response_pdu,
 )
 from clear_modbus.rtu_client import ModbusRtuClient
-from clear_modbus.simulator import BitRange, ModbusSimulator, RegisterRange, SimulatorProfile
+from clear_modbus.simulator import (
+    BitRange,
+    ModbusSimulator,
+    RegisterRange,
+    SimulatorProfile,
+)
 
 __all__ = [
     "BitRange",

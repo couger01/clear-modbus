@@ -1,5 +1,19 @@
 """Exception hierarchy for transport, protocol, and device failures."""
 
+__all__ = [
+    "ModbusCRCError",
+    "ModbusConnectionError",
+    "ModbusError",
+    "ModbusExceptionResponse",
+    "ModbusExceptionResponseError",
+    "ModbusFrameError",
+    "ModbusPDUError",
+    "ModbusProtocolError",
+    "ModbusResponseMismatchError",
+    "ModbusTimeoutError",
+    "ModbusTransportError",
+]
+
 
 class ModbusError(Exception):
     """Base exception for this Modbus package."""

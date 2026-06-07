@@ -10,6 +10,8 @@ from clear_modbus.protocol.mbap import MBAPHeader
 from clear_modbus.protocol.pdu import RequestPDU, ResponsePDU
 from clear_modbus.transport import TCPTransport
 
+__all__ = ["ModbusTcpClient"]
+
 
 class ModbusTcpClient(ModbusClientOperations):
     """Client for Modbus TCP servers.

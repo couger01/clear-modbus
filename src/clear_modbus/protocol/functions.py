@@ -2,6 +2,14 @@
 
 from enum import IntEnum
 
+__all__ = [
+    "ExceptionCode",
+    "FunctionCode",
+    "add_exception_bit",
+    "is_exception_function_code",
+    "strip_exception_bit",
+]
+
 
 class FunctionCode(IntEnum):
     """Standard Modbus function codes supported by this package."""

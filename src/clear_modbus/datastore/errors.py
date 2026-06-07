@@ -1,5 +1,12 @@
 """Datastore exception types."""
 
+__all__ = [
+    "DataStoreError",
+    "InvalidAddressError",
+    "InvalidValueError",
+    "ReadOnlyDataBlockError",
+]
+
 
 class DataStoreError(Exception):
     """Base error for datastore address/range/access failures."""

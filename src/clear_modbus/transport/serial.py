@@ -11,6 +11,8 @@ from clear_modbus.exceptions import (
     ModbusTransportError,
 )
 
+__all__ = ["SerialTransport"]
+
 
 class SerialTransport:
     """Asynchronous serial byte transport.

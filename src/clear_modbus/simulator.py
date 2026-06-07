@@ -10,6 +10,14 @@ from clear_modbus.constants import DEFAULT_MODBUS_TCP_PORT
 from clear_modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
 from clear_modbus.server import ModbusTcpServer
 
+__all__ = [
+    "BitRange",
+    "ModbusSimulator",
+    "RegisterRange",
+    "SimulatorProfile",
+    "SimulatorTaskFactory",
+]
+
 
 @dataclass(frozen=True)
 class RegisterRange:

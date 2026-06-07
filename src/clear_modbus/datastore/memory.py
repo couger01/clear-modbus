@@ -3,6 +3,8 @@
 from clear_modbus.datastore import InvalidAddressError
 from clear_modbus.datastore.blocks import BitBlock, RegisterBlock
 
+__all__ = ["MemoryDataStore"]
+
 
 class MemoryDataStore:
     """Store Modbus data areas in lists of contiguous blocks.

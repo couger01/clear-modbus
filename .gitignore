@@ -11,5 +11,6 @@ wheels/
 
 # Sphinx-generated documentation
 doc/_build/
+doc/_generated/
 doc/.doctrees/
 doc/.buildinfo

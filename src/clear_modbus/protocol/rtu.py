@@ -27,6 +27,18 @@ RTU_RESPONSE_PREFIX_SIZE = 2
 RTU_EXCEPTION_RESPONSE_SIZE = 5
 RTU_WRITE_REGISTER_RESPONSE_SIZE = 8
 
+__all__ = [
+    "ModbusRTUCodec",
+    "ModbusRTUFrame",
+    "crc16_modbus",
+    "decode_rtu_frame",
+    "encode_rtu_frame",
+    "fixed_rtu_response_size",
+    "rtu_byte_count_response_size",
+    "rtu_read_register_response_size",
+    "rtu_response_size_from_prefix",
+]
+
 
 @dataclass(frozen=True)
 class ModbusRTUFrame:

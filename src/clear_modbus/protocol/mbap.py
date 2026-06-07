@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from clear_modbus.constants import MODBUS_TCP_PROTOCOL_ID
 from clear_modbus.exceptions import ModbusFrameError
 
+__all__ = ["MBAPHeader", "ModbusTCPFrame"]
+
 
 @dataclass(frozen=True)
 class MBAPHeader:

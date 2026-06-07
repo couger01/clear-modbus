@@ -9,6 +9,8 @@ from clear_modbus.datastore.errors import (
     ReadOnlyDataBlockError,
 )
 
+__all__ = ["BitBlock", "RegisterBlock"]
+
 
 @dataclass
 class RegisterBlock:

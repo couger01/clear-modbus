@@ -14,6 +14,8 @@ from clear_modbus.protocol.rtu import (
 )
 from clear_modbus.transport import SerialTransport, Transport
 
+__all__ = ["ModbusRtuClient"]
+
 
 class ModbusRtuClient(ModbusClientOperations):
     """Client for Modbus RTU serial devices.

@@ -11,6 +11,8 @@ from clear_modbus.exceptions import (
     ModbusTransportError,
 )
 
+__all__ = ["TCPTransport"]
+
 
 class TCPTransport:
     """Asynchronous TCP byte transport.

@@ -4,6 +4,8 @@ from clear_modbus.exceptions import ModbusResponseMismatchError
 from clear_modbus.protocol.mbap import ModbusTCPFrame
 from clear_modbus.protocol.pdu import RequestPDU, ResponsePDU, decode_response_pdu
 
+__all__ = ["ModbusTCPCodec", "decode_tcp_frame", "encode_tcp_frame"]
+
 
 class ModbusTCPCodec:
     """Encode and decode Modbus TCP frames."""
