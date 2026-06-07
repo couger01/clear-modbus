@@ -1,42 +1,66 @@
-0.1 release checklist
+clear-modbus roadmap
 =====================
 
-Required before publishing
---------------------------
-- Add project metadata in pyproject.toml:
-  - project URLs
-- Clean generated build artifacts before committing:
-  - build/
-  - dist/
-  - src/*.egg-info/
-- Commit the current implementation changes.
+0.1.0: first public release
+---------------------------
+Goal: publish a small, usable alpha that supports core Modbus TCP and RTU
+client/server workflows, includes simulator support, and has enough docs for
+early users to try it safely.
+
+Must have
+- Add project URLs to pyproject.toml.
 - Run final validation:
   - uv run pre-commit run --all-files
   - uv run pytest
   - uv run pydoclint src
   - uv build
+- Clean generated build artifacts before committing:
+  - build/
+  - dist/
+  - src/*.egg-info/
+- Commit the release-ready implementation changes.
 
-Recommended before publishing
------------------------------
+Should have
 - Add a short changelog or release notes section for 0.1.0.
 - Add README examples for:
   - write_single_register
   - write_multiple_registers
   - coils/discrete inputs
   - simulator background tasks
-- Decide whether source distributions should include tests. If not, add
-  packaging configuration to exclude tests from the sdist.
-- Audit public exports in src/clear_modbus/__init__.py and ensure every intended
-  public type is exported.
-- Make exception behavior consistent in high-level client helpers. Some
-  response-type and echoed-value mismatches still raise bare ValueError.
 - Add a clean-environment wheel smoke test that installs the built wheel and
   imports clear_modbus.
+- Decide whether source distributions should include tests. If not, add
+  packaging configuration to exclude tests from the sdist.
 
-Nice to have after 0.1
----------------------
+0.1.x: stabilization
+--------------------
+Goal: smooth rough edges found by initial use without expanding the public API
+too aggressively.
+
+- Make exception behavior consistent in high-level client helpers. Some
+  response-type and echoed-value mismatches still raise bare ValueError.
+- Add CI to run pre-commit, tests, docs, and build on pull requests.
+- Expand Sphinx docs with task-oriented pages for TCP client, RTU client,
+  server, simulator, and datastore usage.
+- Add more interoperability tests against known Modbus TCP/RTU fixtures.
+- Review timeout and disconnect behavior across TCP and serial transports.
+
+0.2.0: protocol coverage
+------------------------
+Goal: broaden supported Modbus behavior while keeping the simple API style.
+
+- Add a custom function-code registry.
+- Add additional standard Modbus functions if there is clear demand.
 - Add Modbus ASCII support.
 - Add UDP or TLS transports if needed.
-- Add a custom function-code registry.
-- Add richer documentation under doc/ if the Sphinx setup is kept.
-- Add CI to run pre-commit, tests, and build on pull requests.
+- Improve simulator scenarios for changing values, faults, and exception
+  responses.
+
+Later
+-----
+Goal: decide which larger features are worth maintaining long term.
+
+- Add richer datastore backends beyond in-memory blocks.
+- Add optional tracing/logging hooks for request and response frames.
+- Add examples for integrating with CLIs, services, and test suites.
+- Evaluate Python version support after the first release cycle.

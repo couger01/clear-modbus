@@ -35,6 +35,12 @@ dependencies = [
     "pyserial>=3.5",
 ]
 
+[project.urls]
+Homepage = "https://github.com/couger01/clear-modbus"
+Repository = "https://github.com/couger01/clear-modbus"
+Issues = "https://github.com/couger01/clear-modbus/issues"
+Changelog = "https://github.com/couger01/clear-modbus/releases"
+
 [build-system]
 requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
