@@ -102,6 +102,59 @@ async def test_execute_sends_encoded_request_and_decodes_read_response() -> None
 
 
 @pytest.mark.asyncio
+async def test_execute_decodes_interoperability_byte_count_read_response() -> None:
+    response = bytes.fromhex("11 03 06 02 2B 00 00 00 64 C8 BA")
+    transport = FakeTransport(
+        receive_chunks=[response[:2], response[2:3], response[3:]]
+    )
+    client = ModbusRtuClient(port="/dev/ttyUSB0", unit_id=17, transport=transport)
+
+    decoded_response = await client.execute(
+        ReadHoldingRegistersRequest(address=0x006B, count=3)
+    )
+
+    assert transport.sent == [bytes.fromhex("11 03 00 6B 00 03 76 87")]
+    assert decoded_response == ReadRegistersResponse(
+        function_code=0x03,
+        values=[555, 0, 100],
+    )
+
+
+@pytest.mark.asyncio
+async def test_execute_decodes_interoperability_fixed_write_echo() -> None:
+    response = bytes.fromhex("11 06 00 6B 00 03 BA 87")
+    transport = FakeTransport(receive_chunks=[response[:2], response[2:]])
+    client = ModbusRtuClient(port="/dev/ttyUSB0", unit_id=17, transport=transport)
+
+    decoded_response = await client.execute(
+        WriteSingleRegisterRequest(address=0x006B, value=3)
+    )
+
+    assert transport.sent == [bytes.fromhex("11 06 00 6B 00 03 BA 87")]
+    assert decoded_response == WriteSingleRegisterResponse(
+        function_code=0x06,
+        address=0x006B,
+        value=3,
+    )
+
+
+@pytest.mark.asyncio
+async def test_execute_decodes_interoperability_exception_response() -> None:
+    response = bytes.fromhex("11 83 02 C1 34")
+    transport = FakeTransport(receive_chunks=[response[:2], response[2:]])
+    client = ModbusRtuClient(port="/dev/ttyUSB0", unit_id=17, transport=transport)
+
+    decoded_response = await client.execute(
+        ReadHoldingRegistersRequest(address=0x006B, count=3)
+    )
+
+    assert transport.sent == [bytes.fromhex("11 03 00 6B 00 03 76 87")]
+    assert decoded_response == ExceptionResponse(
+        function_code=0x03, exception_code=0x02
+    )
+
+
+@pytest.mark.asyncio
 async def test_execute_uses_unit_id_override() -> None:
     response_frame = ModbusRTUFrame(
         unit_id=2,

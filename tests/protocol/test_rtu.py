@@ -32,6 +32,45 @@ from clear_modbus.protocol.rtu import (
 )
 
 
+def test_rtu_frame_decodes_interoperability_read_holding_registers_request() -> None:
+    adu = bytes.fromhex("11 03 00 6B 00 03 76 87")
+    frame = ModbusRTUFrame.decode(adu)
+
+    assert frame.unit_id == 17
+    assert frame.pdu == bytes.fromhex("03 00 6B 00 03")
+    assert frame.encode() == adu
+
+
+def test_rtu_frame_decodes_interoperability_read_holding_registers_response() -> None:
+    adu = bytes.fromhex("11 03 06 02 2B 00 00 00 64 C8 BA")
+
+    frame = ModbusRTUFrame.decode(adu)
+
+    assert frame.unit_id == 17
+    assert frame.pdu == bytes.fromhex("03 06 02 2B 00 00 00 64")
+    assert frame.encode() == adu
+
+
+def test_rtu_frame_decodes_interoperability_write_single_register_echo() -> None:
+    adu = bytes.fromhex("11 06 00 6B 00 03 BA 87")
+
+    frame = ModbusRTUFrame.decode(adu)
+
+    assert frame.unit_id == 17
+    assert frame.pdu == bytes.fromhex("06 00 6B 00 03")
+    assert frame.encode() == adu
+
+
+def test_rtu_frame_decodes_interoperability_exception_response() -> None:
+    adu = bytes.fromhex("11 83 02 C1 34")
+
+    frame = ModbusRTUFrame.decode(adu)
+
+    assert frame.unit_id == 17
+    assert frame.pdu == bytes.fromhex("83 02")
+    assert frame.encode() == adu
+
+
 def test_crc16_modbus_matches_known_request_vector() -> None:
     data = bytes.fromhex("01 03 00 00 00 0A")
 

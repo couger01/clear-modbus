@@ -111,6 +111,24 @@ async def test_execute_sends_encoded_request_and_decodes_response() -> None:
 
 
 @pytest.mark.asyncio
+async def test_execute_decodes_interoperability_read_holding_registers_response() -> (
+    None
+):
+    response_header = bytes.fromhex("00 01 00 00 00 09 11")
+    response_pdu = bytes.fromhex("03 06 02 2B 00 00 00 64")
+    transport = FakeTransport(receive_chunks=[response_header, response_pdu])
+    client = ModbusTcpClient(host="127.0.0.1", unit_id=17)
+    client.transport = transport
+
+    response = await client.execute(
+        ReadHoldingRegistersRequest(address=0x006B, count=3)
+    )
+
+    assert transport.sent == [bytes.fromhex("00 01 00 00 00 06 11 03 00 6B 00 03")]
+    assert response == ReadRegistersResponse(function_code=0x03, values=[555, 0, 100])
+
+
+@pytest.mark.asyncio
 async def test_execute_uses_unit_id_override() -> None:
     response_header = bytes.fromhex("00 01 00 00 00 07 02")
     response_pdu = bytes.fromhex("03 04 00 0A 00 14")
