@@ -5,6 +5,7 @@ from typing import ClassVar, Protocol
 
 from clear_modbus.exceptions import ModbusPDUError
 from clear_modbus.protocol.functions import FunctionCode
+from clear_modbus.protocol.registry import default_function_code_registry
 
 MAX_READ_REGISTERS = 125
 MAX_WRITE_REGISTERS = 123
@@ -879,21 +880,31 @@ def decode_response_pdu(data: bytes, request: RequestPDU) -> ResponsePDU:
     if function_code != request.function_code:
         raise ValueError()
 
-    if function_code in (0x01, 0x02):
+    if function_code in (FunctionCode.READ_COILS, FunctionCode.READ_DISCRETE_INPUTS):
         if not isinstance(request, (ReadCoilsRequest, ReadDiscreteInputsRequest)):
             raise ValueError()
         return ReadBitsResponse.decode(function_code, payload, request.count)
-    if function_code in (0x03, 0x04):
+    if function_code in (
+        FunctionCode.READ_HOLDING_REGISTERS,
+        FunctionCode.READ_INPUT_REGISTERS,
+    ):
         return ReadRegistersResponse.decode(function_code, payload)
-    if function_code == 0x05:
+    if function_code == FunctionCode.WRITE_SINGLE_COIL:
         return WriteSingleCoilResponse.decode(payload)
-    if function_code == 0x06:
+    if function_code == FunctionCode.WRITE_SINGLE_REGISTER:
         return WriteSingleRegisterResponse.decode(payload)
-    if function_code == 0x0F:
+    if function_code == FunctionCode.WRITE_MULTIPLE_COILS:
         return WriteMultipleCoilsResponse.decode(payload)
-    if function_code == 0x10:
+    if function_code == FunctionCode.WRITE_MULTIPLE_REGISTERS:
         return WriteMultipleRegistersResponse.decode(payload)
     else:
+        custom_response = default_function_code_registry.decode_response(
+            function_code=function_code,
+            payload=payload,
+            request=request,
+        )
+        if custom_response is not None:
+            return custom_response
         raise ValueError()
 
 
@@ -998,5 +1009,11 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
             for i in range(0, len(register_bytes), 2)
         ]
         return WriteMultipleRegistersRequest(address=address, values=values)
-
-    raise ModbusPDUError(f"Unsupported function code: {function_code}")
+    else:
+        custom_request = default_function_code_registry.decode_request(
+            function_code=function_code,
+            payload=payload,
+        )
+        if custom_request is not None:
+            return custom_request
+        raise ModbusPDUError(f"Unsupported function code: {function_code}")

@@ -1,6 +1,10 @@
+from dataclasses import dataclass
+from typing import ClassVar
+
 import pytest
 
 from clear_modbus import (
+    CustomFunctionCodeRegistry,
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
@@ -10,6 +14,7 @@ from clear_modbus import (
     WriteSingleCoilResponse,
     decode_request_pdu,
     decode_response_pdu,
+    default_function_code_registry,
 )
 from clear_modbus.exceptions import ModbusPDUError
 from clear_modbus.protocol.functions import FunctionCode
@@ -25,6 +30,41 @@ from clear_modbus.protocol.pdu import (
     pack_bits,
     unpack_bits,
 )
+
+
+@dataclass(frozen=True)
+class CustomRequest:
+    value: int
+
+    function_code: ClassVar[int] = 0x41
+
+    def encode(self) -> bytes:
+        return bytes([self.function_code, self.value])
+
+
+@dataclass(frozen=True)
+class CustomResponse:
+    value: int
+    request_value: int
+
+    function_code: ClassVar[int] = 0x41
+
+    def encode(self) -> bytes:
+        return bytes([self.function_code, self.value])
+
+
+@pytest.fixture
+def function_code_registry() -> CustomFunctionCodeRegistry:
+    request_decoders = default_function_code_registry.request_decoders.copy()
+    response_decoders = default_function_code_registry.response_decoders.copy()
+    try:
+        yield default_function_code_registry
+    finally:
+        default_function_code_registry.request_decoders.clear()
+        default_function_code_registry.request_decoders.update(request_decoders)
+        default_function_code_registry.response_decoders.clear()
+        default_function_code_registry.response_decoders.update(response_decoders)
+
 
 INTEROPERABILITY_PDU_CASES = [
     pytest.param(
@@ -122,6 +162,65 @@ def test_pdu_interoperability_function_code(
         request=request_pdu_obj,
         data=bytes([function_code | 0x80, 0x02]),
     ) == ExceptionResponse(function_code=function_code, exception_code=0x02)
+
+
+def test_custom_registry_decodes_registered_request(
+    function_code_registry: CustomFunctionCodeRegistry,
+) -> None:
+    function_code_registry.register_request_decoder(
+        0x41,
+        lambda payload: CustomRequest(value=payload[0]),
+    )
+
+    request = decode_request_pdu(bytes.fromhex("41 7B"))
+
+    assert request == CustomRequest(value=123)
+
+
+def test_custom_registry_decodes_registered_response_with_request_context(
+    function_code_registry: CustomFunctionCodeRegistry,
+) -> None:
+    request = CustomRequest(value=10)
+
+    def decode_custom_response(payload: bytes, request_pdu) -> CustomResponse:
+        assert isinstance(request_pdu, CustomRequest)
+        return CustomResponse(value=payload[0], request_value=request_pdu.value)
+
+    function_code_registry.register_response_decoder(0x41, decode_custom_response)
+
+    response = decode_response_pdu(data=bytes.fromhex("41 14"), request=request)
+
+    assert response == CustomResponse(value=20, request_value=10)
+
+
+def test_custom_registry_preserves_standard_request_dispatch(
+    function_code_registry: CustomFunctionCodeRegistry,
+) -> None:
+    function_code_registry.register_request_decoder(
+        FunctionCode.READ_HOLDING_REGISTERS,
+        lambda payload: CustomRequest(value=payload[0]),
+    )
+
+    request = decode_request_pdu(bytes.fromhex("03 00 00 00 02"))
+
+    assert request == ReadHoldingRegistersRequest(address=0, count=2)
+
+
+def test_custom_registry_preserves_standard_response_dispatch(
+    function_code_registry: CustomFunctionCodeRegistry,
+) -> None:
+    function_code_registry.register_response_decoder(
+        FunctionCode.READ_HOLDING_REGISTERS,
+        lambda payload, request: CustomResponse(value=payload[0], request_value=0),
+    )
+    request = ReadHoldingRegistersRequest(address=0, count=2)
+
+    response = decode_response_pdu(
+        data=bytes.fromhex("03 04 00 0A 00 14"),
+        request=request,
+    )
+
+    assert response == ReadRegistersResponse(function_code=0x03, values=[10, 20])
 
 
 def test_read_holding_registers_request_encodes_expected_pdu() -> None:
