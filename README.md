@@ -74,6 +74,52 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+### Write Registers
+
+```python
+import asyncio
+
+from clear_modbus import ModbusTcpClient
+
+
+async def main() -> None:
+    async with ModbusTcpClient(host="127.0.0.1", port=502, unit_id=1) as client:
+        single = await client.write_single_register(address=10, value=123)
+        multiple = await client.write_multiple_registers(
+            address=20,
+            values=[100, 200, 300],
+        )
+
+    print(single.address, single.value)
+    print(multiple.address, multiple.count)
+
+
+asyncio.run(main())
+```
+
+### Coils and Discrete Inputs
+
+```python
+import asyncio
+
+from clear_modbus import ModbusTcpClient
+
+
+async def main() -> None:
+    async with ModbusTcpClient(host="127.0.0.1", port=502, unit_id=1) as client:
+        await client.write_single_coil(address=0, value=True)
+        await client.write_multiple_coils(address=1, values=[True, False, True])
+
+        coils = await client.read_coils(address=0, count=4)
+        inputs = await client.read_discrete_inputs(address=0, count=4)
+
+    print(coils.values)
+    print(inputs.values)
+
+
+asyncio.run(main())
+```
+
 ## Modbus RTU Client
 
 ```python
@@ -135,6 +181,54 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+### Simulator Background Tasks
+
+Background tasks can mutate the simulator datastore while clients interact with
+it.
+
+```python
+import asyncio
+
+from clear_modbus import (
+    ModbusSimulator,
+    ModbusTcpClient,
+    RegisterRange,
+    SimulatorProfile,
+)
+from clear_modbus.datastore import MemoryDataStore
+
+
+async def increment_counter(datastore: MemoryDataStore) -> None:
+    while True:
+        value = datastore.get_holding_registers(address=0, count=1)[0]
+        datastore.set_holding_registers(address=0, values=[value + 1])
+        await asyncio.sleep(1.0)
+
+
+async def main() -> None:
+    simulator = ModbusSimulator.from_profile(
+        SimulatorProfile(
+            holding_registers=[
+                RegisterRange(start_address=0, values=[0]),
+            ],
+        ),
+        port=0,
+    )
+    simulator.add_task(increment_counter)
+
+    async with simulator:
+        async with ModbusTcpClient(
+            host=simulator.host,
+            port=simulator.bound_port,
+        ) as client:
+            response = await client.read_holding_registers(address=0, count=1)
+
+    print(response.values)
+
+
+asyncio.run(main())
+```
+
 ## Handling Exception Responses
 
 High-level client helpers raise `ModbusExceptionResponseError` when a server
@@ -189,10 +283,16 @@ Build the package:
 uv build
 ```
 
+Smoke test the built wheel in a temporary virtual environment:
+
+```bash
+uv build
+python scripts/smoke_wheel.py
+```
+
 ## Current Limitations
 
 - Async API only
 - No Modbus ASCII support yet
 - No UDP or TLS transport yet
 - No custom function-code registry yet
-- Public package/distribution name is not finalized

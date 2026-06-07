@@ -7,31 +7,6 @@ Goal: publish a small, usable alpha that supports core Modbus TCP and RTU
 client/server workflows, includes simulator support, and has enough docs for
 early users to try it safely.
 
-Must have
-- Add project URLs to pyproject.toml.
-- Run final validation:
-  - uv run pre-commit run --all-files
-  - uv run pytest
-  - uv run pydoclint src
-  - uv build
-- Clean generated build artifacts before committing:
-  - build/
-  - dist/
-  - src/*.egg-info/
-- Commit the release-ready implementation changes.
-
-Should have
-- Add a short changelog or release notes section for 0.1.0.
-- Add README examples for:
-  - write_single_register
-  - write_multiple_registers
-  - coils/discrete inputs
-  - simulator background tasks
-- Add a clean-environment wheel smoke test that installs the built wheel and
-  imports clear_modbus.
-- Decide whether source distributions should include tests. If not, add
-  packaging configuration to exclude tests from the sdist.
-
 0.1.x: stabilization
 --------------------
 Goal: smooth rough edges found by initial use without expanding the public API
