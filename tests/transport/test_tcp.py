@@ -1,37 +1,66 @@
+import asyncio
+
 import pytest
 
 from clear_modbus.constants import DEFAULT_MODBUS_TCP_PORT
-from clear_modbus.exceptions import ModbusConnectionError, ModbusTimeoutError
+from clear_modbus.exceptions import (
+    ModbusConnectionError,
+    ModbusTimeoutError,
+    ModbusTransportError,
+)
 from clear_modbus.transport.tcp import TCPTransport
 
 
 class FakeStreamWriter:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        write_error: Exception | None = None,
+        drain_error: Exception | None = None,
+        wait_closed_error: Exception | None = None,
+    ) -> None:
         self.writes: list[bytes] = []
         self.closed = False
         self.drain_called = False
         self.wait_closed_called = False
+        self.write_error = write_error
+        self.drain_error = drain_error
+        self.wait_closed_error = wait_closed_error
 
     def write(self, data: bytes) -> None:
+        if self.write_error is not None:
+            raise self.write_error
         self.writes.append(data)
 
     async def drain(self) -> None:
         self.drain_called = True
+        if self.drain_error is not None:
+            raise self.drain_error
 
     def close(self) -> None:
         self.closed = True
 
     async def wait_closed(self) -> None:
         self.wait_closed_called = True
+        if self.wait_closed_error is not None:
+            raise self.wait_closed_error
 
 
 class FakeStreamReader:
-    def __init__(self, data: bytes = b"") -> None:
+    def __init__(
+        self,
+        data: bytes = b"",
+        *,
+        read_error: Exception | None = None,
+    ) -> None:
         self.data = data
         self.read_sizes: list[int] = []
+        self.read_error = read_error
 
     async def readexactly(self, size: int) -> bytes:
         self.read_sizes.append(size)
+        if self.read_error is not None:
+            raise self.read_error
         return self.data
 
 
@@ -108,6 +137,21 @@ async def test_connect_wraps_timeout_errors(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_connect_wraps_open_connection_errors(monkeypatch) -> None:
+    async def fake_open_connection(*, host: str, port: int):
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(
+        "clear_modbus.transport.tcp.asyncio.open_connection", fake_open_connection
+    )
+
+    transport = TCPTransport(host="127.0.0.1")
+
+    with pytest.raises(ModbusConnectionError):
+        await transport.connect()
+
+
+@pytest.mark.asyncio
 async def test_close_is_idempotent() -> None:
     transport = TCPTransport(host="127.0.0.1")
 
@@ -119,6 +163,21 @@ async def test_close_is_idempotent() -> None:
     transport.stream_reader = reader
 
     await transport.close()
+    await transport.close()
+
+    assert writer.closed is True
+    assert writer.wait_closed_called is True
+    assert transport.stream_writer is None
+    assert transport.stream_reader is None
+
+
+@pytest.mark.asyncio
+async def test_close_ignores_wait_closed_errors_and_clears_state() -> None:
+    transport = TCPTransport(host="127.0.0.1")
+    writer = FakeStreamWriter(wait_closed_error=OSError("close failed"))
+    transport.stream_writer = writer
+    transport.stream_reader = FakeStreamReader()
+
     await transport.close()
 
     assert writer.closed is True
@@ -148,6 +207,39 @@ async def test_send_rejects_disconnected_transport() -> None:
 
 
 @pytest.mark.asyncio
+async def test_send_wraps_drain_timeout_and_keeps_stream() -> None:
+    transport = TCPTransport(host="127.0.0.1")
+    writer = FakeStreamWriter(drain_error=TimeoutError())
+    transport.stream_writer = writer
+
+    with pytest.raises(ModbusTimeoutError):
+        await transport.send(b"data")
+
+    assert writer.writes == [b"data"]
+    assert transport.stream_writer is writer
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "writer",
+    [
+        FakeStreamWriter(write_error=OSError("write failed")),
+        FakeStreamWriter(drain_error=OSError("drain failed")),
+    ],
+)
+async def test_send_wraps_stream_errors_and_keeps_stream(
+    writer: FakeStreamWriter,
+) -> None:
+    transport = TCPTransport(host="127.0.0.1")
+    transport.stream_writer = writer
+
+    with pytest.raises(ModbusTransportError):
+        await transport.send(b"data")
+
+    assert transport.stream_writer is writer
+
+
+@pytest.mark.asyncio
 async def test_receive_reads_exactly_requested_size() -> None:
     transport = TCPTransport(host="127.0.0.1")
     reader = FakeStreamReader(data=bytes.fromhex("01 02 03"))
@@ -169,3 +261,32 @@ async def test_receive_rejects_non_positive_size() -> None:
 
     with pytest.raises(ValueError):
         await transport.receive(-1)
+
+
+@pytest.mark.asyncio
+async def test_receive_wraps_timeout_errors() -> None:
+    transport = TCPTransport(host="127.0.0.1")
+    transport.stream_reader = FakeStreamReader(read_error=TimeoutError())
+
+    with pytest.raises(ModbusTimeoutError):
+        await transport.receive(1)
+
+
+@pytest.mark.asyncio
+async def test_receive_wraps_incomplete_reads() -> None:
+    transport = TCPTransport(host="127.0.0.1")
+    transport.stream_reader = FakeStreamReader(
+        read_error=asyncio.IncompleteReadError(partial=b"", expected=1)
+    )
+
+    with pytest.raises(ModbusTransportError):
+        await transport.receive(1)
+
+
+@pytest.mark.asyncio
+async def test_receive_wraps_connection_resets() -> None:
+    transport = TCPTransport(host="127.0.0.1")
+    transport.stream_reader = FakeStreamReader(read_error=ConnectionResetError())
+
+    with pytest.raises(ModbusConnectionError):
+        await transport.receive(1)
