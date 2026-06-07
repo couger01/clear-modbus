@@ -1,7 +1,7 @@
 import pytest
 
-from modbus.datastore.blocks import BitBlock, RegisterBlock
-from modbus.datastore.errors import (
+from clear_modbus.datastore.blocks import BitBlock, RegisterBlock
+from clear_modbus.datastore.errors import (
     InvalidAddressError,
     InvalidValueError,
     ReadOnlyDataBlockError,

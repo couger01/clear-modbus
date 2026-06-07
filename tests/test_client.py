@@ -1,10 +1,10 @@
 import pytest
 
-from modbus.client import ModbusTcpClient
-from modbus.constants import DEFAULT_MODBUS_TCP_PORT
-from modbus.exceptions import ModbusExceptionResponseError
-from modbus.protocol.codec import ModbusTCPCodec
-from modbus.protocol.pdu import (
+from clear_modbus.client import ModbusTcpClient
+from clear_modbus.constants import DEFAULT_MODBUS_TCP_PORT
+from clear_modbus.exceptions import ModbusExceptionResponseError
+from clear_modbus.protocol.codec import ModbusTCPCodec
+from clear_modbus.protocol.pdu import (
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
@@ -21,7 +21,7 @@ from modbus.protocol.pdu import (
     WriteSingleRegisterRequest,
     WriteSingleRegisterResponse,
 )
-from modbus.transport import TCPTransport
+from clear_modbus.transport import TCPTransport
 
 
 class FakeTransport:

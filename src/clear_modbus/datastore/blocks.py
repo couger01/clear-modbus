@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-from modbus.datastore.errors import (
+from clear_modbus.datastore.errors import (
     InvalidAddressError,
     InvalidValueError,
     ReadOnlyDataBlockError,

@@ -1,11 +1,11 @@
 import pytest
 
-from modbus.exceptions import (
+from clear_modbus.exceptions import (
     ModbusCRCError,
     ModbusFrameError,
     ModbusResponseMismatchError,
 )
-from modbus.protocol.pdu import (
+from clear_modbus.protocol.pdu import (
     ReadCoilsRequest,
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
@@ -16,7 +16,7 @@ from modbus.protocol.pdu import (
     WriteSingleCoilRequest,
     WriteSingleRegisterRequest,
 )
-from modbus.protocol.rtu import (
+from clear_modbus.protocol.rtu import (
     RTU_EXCEPTION_RESPONSE_SIZE,
     RTU_RESPONSE_PREFIX_SIZE,
     RTU_WRITE_REGISTER_RESPONSE_SIZE,

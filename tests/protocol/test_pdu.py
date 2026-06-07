@@ -1,6 +1,6 @@
 import pytest
 
-from modbus import (
+from clear_modbus import (
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
@@ -11,8 +11,8 @@ from modbus import (
     decode_request_pdu,
     decode_response_pdu,
 )
-from modbus.exceptions import ModbusPDUError
-from modbus.protocol.pdu import (
+from clear_modbus.exceptions import ModbusPDUError
+from clear_modbus.protocol.pdu import (
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,

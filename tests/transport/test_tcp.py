@@ -1,8 +1,8 @@
 import pytest
 
-from modbus.constants import DEFAULT_MODBUS_TCP_PORT
-from modbus.exceptions import ModbusConnectionError, ModbusTimeoutError
-from modbus.transport.tcp import TCPTransport
+from clear_modbus.constants import DEFAULT_MODBUS_TCP_PORT
+from clear_modbus.exceptions import ModbusConnectionError, ModbusTimeoutError
+from clear_modbus.transport.tcp import TCPTransport
 
 
 class FakeStreamWriter:
@@ -58,7 +58,7 @@ async def test_tcp_transport_async_context_manager_connects_and_closes(
         return reader, writer
 
     monkeypatch.setattr(
-        "modbus.transport.tcp.asyncio.open_connection", fake_open_connection
+        "clear_modbus.transport.tcp.asyncio.open_connection", fake_open_connection
     )
 
     async with TCPTransport(host="127.0.0.1") as transport:
@@ -81,7 +81,7 @@ async def test_connect_opens_streams(monkeypatch) -> None:
         return reader, writer
 
     monkeypatch.setattr(
-        "modbus.transport.tcp.asyncio.open_connection", fake_open_connection
+        "clear_modbus.transport.tcp.asyncio.open_connection", fake_open_connection
     )
 
     transport = TCPTransport(host="127.0.0.1")
@@ -98,7 +98,7 @@ async def test_connect_wraps_timeout_errors(monkeypatch) -> None:
         raise TimeoutError()
 
     monkeypatch.setattr(
-        "modbus.transport.tcp.asyncio.open_connection", fake_open_connection
+        "clear_modbus.transport.tcp.asyncio.open_connection", fake_open_connection
     )
 
     transport = TCPTransport(host="127.0.0.1")

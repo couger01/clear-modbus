@@ -5,7 +5,7 @@ from functools import partial
 from types import TracebackType
 from typing import Self
 
-from modbus.exceptions import (
+from clear_modbus.exceptions import (
     ModbusConnectionError,
     ModbusTimeoutError,
     ModbusTransportError,

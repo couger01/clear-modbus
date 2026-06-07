@@ -1,7 +1,7 @@
 import pytest
 
-from modbus.exceptions import ModbusConnectionError
-from modbus.transport.serial import SerialTransport
+from clear_modbus.exceptions import ModbusConnectionError
+from clear_modbus.transport.serial import SerialTransport
 
 
 def test_serial_transport_initializes_connection_settings() -> None:

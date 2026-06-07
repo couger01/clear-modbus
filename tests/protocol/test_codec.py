@@ -1,10 +1,14 @@
 import pytest
 
-from modbus import ReadRegistersResponse
-from modbus.exceptions import ModbusResponseMismatchError
-from modbus.protocol.codec import ModbusTCPCodec, decode_tcp_frame, encode_tcp_frame
-from modbus.protocol.mbap import ModbusTCPFrame
-from modbus.protocol.pdu import ReadHoldingRegistersRequest
+from clear_modbus import ReadRegistersResponse
+from clear_modbus.exceptions import ModbusResponseMismatchError
+from clear_modbus.protocol.codec import (
+    ModbusTCPCodec,
+    decode_tcp_frame,
+    encode_tcp_frame,
+)
+from clear_modbus.protocol.mbap import ModbusTCPFrame
+from clear_modbus.protocol.pdu import ReadHoldingRegistersRequest
 
 
 def test_encode_request_wraps_request_pdu_in_tcp_frame() -> None:

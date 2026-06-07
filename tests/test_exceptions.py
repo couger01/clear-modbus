@@ -1,7 +1,7 @@
 import pytest
 
-from modbus.client_helpers import raise_for_exception_response
-from modbus.exceptions import (
+from clear_modbus.client_helpers import raise_for_exception_response
+from clear_modbus.exceptions import (
     ModbusCRCError,
     ModbusExceptionResponse,
     ModbusExceptionResponseError,
@@ -9,7 +9,7 @@ from modbus.exceptions import (
     ModbusProtocolError,
     ModbusResponseMismatchError,
 )
-from modbus.protocol.pdu import ExceptionResponse, ReadRegistersResponse
+from clear_modbus.protocol.pdu import ExceptionResponse, ReadRegistersResponse
 
 
 def test_modbus_exception_response_stores_codes_and_message() -> None:

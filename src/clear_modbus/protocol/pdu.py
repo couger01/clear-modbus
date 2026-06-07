@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 from typing import ClassVar, Protocol
 
-from modbus.exceptions import ModbusPDUError
-from modbus.protocol.functions import FunctionCode
+from clear_modbus.exceptions import ModbusPDUError
+from clear_modbus.protocol.functions import FunctionCode
 
 MAX_READ_REGISTERS = 125
 MAX_WRITE_REGISTERS = 123

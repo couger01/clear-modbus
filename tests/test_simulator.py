@@ -2,9 +2,14 @@ import asyncio
 
 import pytest
 
-from modbus import ModbusTcpClient
-from modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
-from modbus.simulator import BitRange, ModbusSimulator, RegisterRange, SimulatorProfile
+from clear_modbus import ModbusTcpClient
+from clear_modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
+from clear_modbus.simulator import (
+    BitRange,
+    ModbusSimulator,
+    RegisterRange,
+    SimulatorProfile,
+)
 
 
 def test_simulator_profile_builds_memory_datastore() -> None:

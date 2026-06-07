@@ -4,7 +4,7 @@ import asyncio
 from types import TracebackType
 from typing import Self
 
-from modbus import (
+from clear_modbus import (
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
@@ -21,18 +21,18 @@ from modbus import (
     WriteSingleRegisterRequest,
     WriteSingleRegisterResponse,
 )
-from modbus.constants import DEFAULT_MODBUS_TCP_PORT, MODBUS_TCP_PROTOCOL_ID
-from modbus.datastore import (
+from clear_modbus.constants import DEFAULT_MODBUS_TCP_PORT, MODBUS_TCP_PROTOCOL_ID
+from clear_modbus.datastore import (
     InvalidAddressError,
     MemoryDataStore,
     ReadOnlyDataBlockError,
 )
-from modbus.datastore.base import ModbusDataStore
-from modbus.datastore.errors import InvalidValueError
-from modbus.exceptions import ModbusPDUError
-from modbus.protocol.functions import ExceptionCode
-from modbus.protocol.mbap import MBAPHeader, ModbusTCPFrame
-from modbus.protocol.pdu import RequestPDU, ResponsePDU, decode_request_pdu
+from clear_modbus.datastore.base import ModbusDataStore
+from clear_modbus.datastore.errors import InvalidValueError
+from clear_modbus.exceptions import ModbusPDUError
+from clear_modbus.protocol.functions import ExceptionCode
+from clear_modbus.protocol.mbap import MBAPHeader, ModbusTCPFrame
+from clear_modbus.protocol.pdu import RequestPDU, ResponsePDU, decode_request_pdu
 
 
 class ModbusTcpServer:

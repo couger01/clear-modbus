@@ -3,16 +3,16 @@
 from types import TracebackType
 from typing import Self
 
-from modbus.client_helpers import ModbusClientOperations
-from modbus.constants import DEFAULT_UNIT_ID
-from modbus.protocol.pdu import RequestPDU, ResponsePDU
-from modbus.protocol.rtu import (
+from clear_modbus.client_helpers import ModbusClientOperations
+from clear_modbus.constants import DEFAULT_UNIT_ID
+from clear_modbus.protocol.pdu import RequestPDU, ResponsePDU
+from clear_modbus.protocol.rtu import (
     RTU_RESPONSE_PREFIX_SIZE,
     ModbusRTUCodec,
     rtu_byte_count_response_size,
     rtu_response_size_from_prefix,
 )
-from modbus.transport import SerialTransport, Transport
+from clear_modbus.transport import SerialTransport, Transport
 
 
 class ModbusRtuClient(ModbusClientOperations):

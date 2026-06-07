@@ -1,4 +1,4 @@
-from modbus.datastore.errors import (
+from clear_modbus.datastore.errors import (
     InvalidAddressError,
     InvalidValueError,
     ReadOnlyDataBlockError,

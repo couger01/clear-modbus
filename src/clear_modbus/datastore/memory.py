@@ -1,7 +1,7 @@
 """In-memory Modbus datastore implementation."""
 
-from modbus.datastore import InvalidAddressError
-from modbus.datastore.blocks import BitBlock, RegisterBlock
+from clear_modbus.datastore import InvalidAddressError
+from clear_modbus.datastore.blocks import BitBlock, RegisterBlock
 
 
 class MemoryDataStore:

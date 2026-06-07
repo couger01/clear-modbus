@@ -1,4 +1,4 @@
-from modbus.protocol.functions import (
+from clear_modbus.protocol.functions import (
     add_exception_bit,
     is_exception_function_code,
     strip_exception_bit,

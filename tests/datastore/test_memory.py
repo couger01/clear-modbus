@@ -1,8 +1,8 @@
 import pytest
 
-from modbus.datastore.blocks import BitBlock, RegisterBlock
-from modbus.datastore.errors import InvalidAddressError
-from modbus.datastore.memory import MemoryDataStore
+from clear_modbus.datastore.blocks import BitBlock, RegisterBlock
+from clear_modbus.datastore.errors import InvalidAddressError
+from clear_modbus.datastore.memory import MemoryDataStore
 
 
 def test_memory_datastore_initializes_empty_blocks_by_default() -> None:

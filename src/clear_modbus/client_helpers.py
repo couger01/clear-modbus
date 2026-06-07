@@ -1,7 +1,7 @@
 """Shared high-level operations for Modbus clients."""
 
-from modbus.exceptions import ModbusExceptionResponseError
-from modbus.protocol.pdu import (
+from clear_modbus.exceptions import ModbusExceptionResponseError
+from clear_modbus.protocol.pdu import (
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,

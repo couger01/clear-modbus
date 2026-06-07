@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 from types import TracebackType
 from typing import Any, Self
 
-from modbus.constants import DEFAULT_MODBUS_TCP_PORT
-from modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
-from modbus.server import ModbusTcpServer
+from clear_modbus.constants import DEFAULT_MODBUS_TCP_PORT
+from clear_modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
+from clear_modbus.server import ModbusTcpServer
 
 
 @dataclass(frozen=True)

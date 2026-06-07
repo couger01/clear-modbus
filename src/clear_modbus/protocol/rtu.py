@@ -2,13 +2,13 @@
 
 from dataclasses import dataclass
 
-from modbus.exceptions import (
+from clear_modbus.exceptions import (
     ModbusCRCError,
     ModbusFrameError,
     ModbusResponseMismatchError,
 )
-from modbus.protocol.functions import is_exception_function_code
-from modbus.protocol.pdu import (
+from clear_modbus.protocol.functions import is_exception_function_code
+from clear_modbus.protocol.pdu import (
     ReadCoilsRequest,
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,

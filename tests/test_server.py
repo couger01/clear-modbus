@@ -2,12 +2,12 @@ import asyncio
 
 import pytest
 
-from modbus.constants import DEFAULT_MODBUS_TCP_PORT
-from modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
-from modbus.datastore.errors import InvalidValueError
-from modbus.protocol.functions import ExceptionCode
-from modbus.protocol.mbap import ModbusTCPFrame
-from modbus.protocol.pdu import (
+from clear_modbus.constants import DEFAULT_MODBUS_TCP_PORT
+from clear_modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
+from clear_modbus.datastore.errors import InvalidValueError
+from clear_modbus.protocol.functions import ExceptionCode
+from clear_modbus.protocol.mbap import ModbusTCPFrame
+from clear_modbus.protocol.pdu import (
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
@@ -24,7 +24,7 @@ from modbus.protocol.pdu import (
     WriteSingleRegisterRequest,
     WriteSingleRegisterResponse,
 )
-from modbus.server import ModbusTcpServer
+from clear_modbus.server import ModbusTcpServer
 
 
 class FakeStreamReader:

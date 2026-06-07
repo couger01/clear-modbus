@@ -4,8 +4,8 @@ import asyncio
 from types import TracebackType
 from typing import Self
 
-from modbus.constants import DEFAULT_MODBUS_TCP_PORT
-from modbus.exceptions import (
+from clear_modbus.constants import DEFAULT_MODBUS_TCP_PORT
+from clear_modbus.exceptions import (
     ModbusConnectionError,
     ModbusTimeoutError,
     ModbusTransportError,

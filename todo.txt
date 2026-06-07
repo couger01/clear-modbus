@@ -3,18 +3,8 @@
 
 Required before publishing
 --------------------------
-- Add a LICENSE file and make sure the selected license is reflected in
-  pyproject.toml.
 - Add project metadata in pyproject.toml:
-  - authors
-  - license/license-files
-  - classifiers
   - project URLs
-- Verify that the PyPI project name clear-modbus is available from the
-  publishing account.
-- Decide whether the Python import package should remain modbus for 0.1 or be
-  renamed to clear_modbus to avoid import-name conflicts with other installed
-  packages.
 - Clean generated build artifacts before committing:
   - build/
   - dist/
@@ -23,6 +13,7 @@ Required before publishing
 - Run final validation:
   - uv run pre-commit run --all-files
   - uv run pytest
+  - uv run pydoclint src
   - uv build
 
 Recommended before publishing
@@ -35,12 +26,12 @@ Recommended before publishing
   - simulator background tasks
 - Decide whether source distributions should include tests. If not, add
   packaging configuration to exclude tests from the sdist.
-- Audit public exports in src/modbus/__init__.py and ensure every intended
+- Audit public exports in src/clear_modbus/__init__.py and ensure every intended
   public type is exported.
 - Make exception behavior consistent in high-level client helpers. Some
   response-type and echoed-value mismatches still raise bare ValueError.
-- Consider adding smoke tests that install the built wheel in a clean
-  environment and import modbus.
+- Add a clean-environment wheel smoke test that installs the built wheel and
+  imports clear_modbus.
 
 Nice to have after 0.1
 ---------------------

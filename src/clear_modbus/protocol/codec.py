@@ -1,8 +1,8 @@
 """Codec for Modbus TCP request and response frames."""
 
-from modbus.exceptions import ModbusResponseMismatchError
-from modbus.protocol.mbap import ModbusTCPFrame
-from modbus.protocol.pdu import RequestPDU, ResponsePDU, decode_response_pdu
+from clear_modbus.exceptions import ModbusResponseMismatchError
+from clear_modbus.protocol.mbap import ModbusTCPFrame
+from clear_modbus.protocol.pdu import RequestPDU, ResponsePDU, decode_response_pdu
 
 
 class ModbusTCPCodec:

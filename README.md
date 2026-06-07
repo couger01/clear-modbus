@@ -51,10 +51,10 @@ uv sync --dev
 ```
 
 The distribution package is `clear-modbus`; the Python import package is
-`modbus`:
+`clear_modbus`:
 
 ```python
-import modbus
+import clear_modbus
 ```
 
 ## Modbus TCP Client
@@ -62,7 +62,7 @@ import modbus
 ```python
 import asyncio
 
-from modbus import ModbusTcpClient
+from clear_modbus import ModbusTcpClient
 
 
 async def main() -> None:
@@ -79,7 +79,7 @@ asyncio.run(main())
 ```python
 import asyncio
 
-from modbus import ModbusRtuClient
+from clear_modbus import ModbusRtuClient
 
 
 async def main() -> None:
@@ -104,7 +104,7 @@ physical device.
 ```python
 import asyncio
 
-from modbus import (
+from clear_modbus import (
     ModbusSimulator,
     ModbusTcpClient,
     RegisterRange,
@@ -141,7 +141,7 @@ High-level client helpers raise `ModbusExceptionResponseError` when a server
 returns a valid Modbus exception response.
 
 ```python
-from modbus import ModbusExceptionResponseError
+from clear_modbus import ModbusExceptionResponseError
 
 try:
     response = await client.read_holding_registers(address=0, count=2)
@@ -157,7 +157,7 @@ exception response PDUs, so callers can decide how to handle them.
 Servers and simulators use in-memory register and bit blocks.
 
 ```python
-from modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
+from clear_modbus.datastore import BitBlock, MemoryDataStore, RegisterBlock
 
 datastore = MemoryDataStore(
     holding_registers=[

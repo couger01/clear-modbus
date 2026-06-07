@@ -1,8 +1,8 @@
 import pytest
 
-from modbus.constants import MODBUS_TCP_PROTOCOL_ID
-from modbus.exceptions import ModbusFrameError
-from modbus.protocol.mbap import MBAPHeader, ModbusTCPFrame
+from clear_modbus.constants import MODBUS_TCP_PROTOCOL_ID
+from clear_modbus.exceptions import ModbusFrameError
+from clear_modbus.protocol.mbap import MBAPHeader, ModbusTCPFrame
 
 
 def test_mbap_header_encodes_expected_bytes() -> None:

@@ -4,6 +4,33 @@ version = "0.1.0"
 description = "Async Python Modbus TCP and RTU client/server toolkit with simulator support."
 readme = "README.md"
 requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Eric Coughlin", email = "eric@coughlin.software" },
+]
+maintainers = [
+    { name = "Eric Coughlin", email = "eric@coughlin.software" },
+]
+keywords = [
+    "asyncio",
+    "fieldbus",
+    "modbus",
+    "modbus-rtu",
+    "modbus-tcp",
+    "simulator",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Communications",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "pyserial>=3.5",
 ]

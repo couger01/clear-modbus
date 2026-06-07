@@ -3,12 +3,12 @@
 from types import TracebackType
 from typing import Self
 
-from modbus.client_helpers import ModbusClientOperations
-from modbus.constants import DEFAULT_MODBUS_TCP_PORT, DEFAULT_UNIT_ID
-from modbus.protocol.codec import ModbusTCPCodec
-from modbus.protocol.mbap import MBAPHeader
-from modbus.protocol.pdu import RequestPDU, ResponsePDU
-from modbus.transport import TCPTransport
+from clear_modbus.client_helpers import ModbusClientOperations
+from clear_modbus.constants import DEFAULT_MODBUS_TCP_PORT, DEFAULT_UNIT_ID
+from clear_modbus.protocol.codec import ModbusTCPCodec
+from clear_modbus.protocol.mbap import MBAPHeader
+from clear_modbus.protocol.pdu import RequestPDU, ResponsePDU
+from clear_modbus.transport import TCPTransport
 
 
 class ModbusTcpClient(ModbusClientOperations):

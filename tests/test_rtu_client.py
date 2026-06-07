@@ -1,7 +1,7 @@
 import pytest
 
-from modbus.exceptions import ModbusCRCError, ModbusExceptionResponseError
-from modbus.protocol.pdu import (
+from clear_modbus.exceptions import ModbusCRCError, ModbusExceptionResponseError
+from clear_modbus.protocol.pdu import (
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
@@ -18,9 +18,9 @@ from modbus.protocol.pdu import (
     WriteSingleRegisterRequest,
     WriteSingleRegisterResponse,
 )
-from modbus.protocol.rtu import ModbusRTUFrame
-from modbus.rtu_client import ModbusRtuClient
-from modbus.transport import SerialTransport
+from clear_modbus.protocol.rtu import ModbusRTUFrame
+from clear_modbus.rtu_client import ModbusRtuClient
+from clear_modbus.transport import SerialTransport
 
 
 class FakeTransport:

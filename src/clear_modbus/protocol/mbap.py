@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from modbus.constants import MODBUS_TCP_PROTOCOL_ID
-from modbus.exceptions import ModbusFrameError
+from clear_modbus.constants import MODBUS_TCP_PROTOCOL_ID
+from clear_modbus.exceptions import ModbusFrameError
 
 
 @dataclass(frozen=True)

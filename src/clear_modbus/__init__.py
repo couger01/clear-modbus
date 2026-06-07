@@ -1,12 +1,12 @@
 """Public API for clear-modbus.
 
 The distribution package is named ``clear-modbus`` and exposes the import
-package ``modbus``.
+package ``clear_modbus``.
 """
 
-from modbus.client import ModbusTcpClient
-from modbus.exceptions import ModbusExceptionResponseError
-from modbus.protocol.pdu import (
+from clear_modbus.client import ModbusTcpClient
+from clear_modbus.exceptions import ModbusExceptionResponseError
+from clear_modbus.protocol.pdu import (
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
@@ -25,8 +25,8 @@ from modbus.protocol.pdu import (
     decode_request_pdu,
     decode_response_pdu,
 )
-from modbus.rtu_client import ModbusRtuClient
-from modbus.simulator import BitRange, ModbusSimulator, RegisterRange, SimulatorProfile
+from clear_modbus.rtu_client import ModbusRtuClient
+from clear_modbus.simulator import BitRange, ModbusSimulator, RegisterRange, SimulatorProfile
 
 __all__ = [
     "BitRange",
