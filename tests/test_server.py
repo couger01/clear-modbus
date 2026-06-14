@@ -15,6 +15,7 @@ from clear_modbus.protocol.pdu import (
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
+    ReadWriteMultipleRegistersRequest,
     WriteMultipleCoilsRequest,
     WriteMultipleCoilsResponse,
     WriteMultipleRegistersRequest,
@@ -179,6 +180,49 @@ async def test_handle_request_routes_writes_to_datastore() -> None:
     )
     assert holding_registers.values == [55, 66, 30]
     assert coils.values == [True, False, False]
+
+
+@pytest.mark.asyncio
+async def test_handle_request_routes_read_write_multiple_registers_to_datastore() -> (
+    None
+):
+    holding_registers = RegisterBlock(start_address=0, values=[10, 20, 30, 40])
+    datastore = MemoryDataStore(holding_registers=[holding_registers])
+    server = ModbusTcpServer(datastore=datastore)
+
+    response = await server.handle_request(
+        ReadWriteMultipleRegistersRequest(
+            read_address=0,
+            read_count=3,
+            write_address=1,
+            values=[55, 66],
+        )
+    )
+
+    assert response == ReadRegistersResponse(function_code=0x17, values=[10, 55, 66])
+    assert holding_registers.values == [10, 55, 66, 40]
+
+
+@pytest.mark.asyncio
+async def test_handle_request_does_not_write_read_write_registers_on_bad_read() -> None:
+    holding_registers = RegisterBlock(start_address=0, values=[10, 20])
+    datastore = MemoryDataStore(holding_registers=[holding_registers])
+    server = ModbusTcpServer(datastore=datastore)
+
+    response = await server.handle_request(
+        ReadWriteMultipleRegistersRequest(
+            read_address=10,
+            read_count=1,
+            write_address=0,
+            values=[55],
+        )
+    )
+
+    assert response == ExceptionResponse(
+        function_code=0x17,
+        exception_code=ExceptionCode.ILLEGAL_DATA_ADDRESS,
+    )
+    assert holding_registers.values == [10, 20]
 
 
 @pytest.mark.asyncio

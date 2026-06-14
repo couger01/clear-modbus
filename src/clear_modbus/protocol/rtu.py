@@ -13,6 +13,7 @@ from clear_modbus.protocol.pdu import (
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
+    ReadWriteMultipleRegistersRequest,
     RequestPDU,
     ResponsePDU,
     WriteMultipleCoilsRequest,
@@ -264,6 +265,7 @@ def fixed_rtu_response_size(request: RequestPDU) -> int | None:
             ReadDiscreteInputsRequest,
             ReadHoldingRegistersRequest,
             ReadInputRegistersRequest,
+            ReadWriteMultipleRegistersRequest,
         ),
     ):
         return None

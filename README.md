@@ -30,6 +30,7 @@ usage and integration feedback accumulate.
   - Write single register (`0x06`)
   - Write multiple coils (`0x0F`)
   - Write multiple registers (`0x10`)
+  - Read/write multiple registers (`0x17`)
 
 ## Requirements
 
@@ -88,6 +89,12 @@ async def main() -> None:
         multiple = await client.write_multiple_registers(
             address=20,
             values=[100, 200, 300],
+        )
+        read_after_write = await client.read_write_multiple_registers(
+            read_address=0,
+            read_count=2,
+            write_address=20,
+            values=[100, 200],
         )
 
     print(single.address, single.value)

@@ -9,6 +9,7 @@ from clear_modbus.protocol.registry import default_function_code_registry
 
 MAX_READ_REGISTERS = 125
 MAX_WRITE_REGISTERS = 123
+MAX_READ_WRITE_REGISTERS_WRITE = 121
 MAX_REGISTER_VALUE = 0xFFFF
 MAX_READ_BITS = 2000
 MAX_WRITE_BITS = 1968
@@ -23,6 +24,7 @@ __all__ = [
     "ReadHoldingRegistersRequest",
     "ReadInputRegistersRequest",
     "ReadRegistersResponse",
+    "ReadWriteMultipleRegistersRequest",
     "RequestPDU",
     "ResponsePDU",
     "WriteMultipleCoilsRequest",
@@ -800,6 +802,48 @@ class WriteMultipleCoilsResponse:
 
 
 @dataclass(frozen=True)
+class ReadWriteMultipleRegistersRequest:
+    """Read/write multiple registers request PDU."""
+
+    read_address: int
+    read_count: int
+    write_address: int
+    values: list[int]
+
+    function_code: ClassVar[int] = 0x17
+
+    def encode(self) -> bytes:
+        """Encode the request PDU.
+
+        Returns
+        -------
+        bytes
+            Encoded request PDU.
+
+        """
+        byte_count = len(self.values) * 2
+        payload = bytearray()
+        payload.append(self.function_code)
+        payload += self.read_address.to_bytes(2, "big")
+        payload += self.read_count.to_bytes(2, "big")
+        payload += self.write_address.to_bytes(2, "big")
+        payload += len(self.values).to_bytes(2, "big")
+        payload.append(byte_count)
+        for value in self.values:
+            payload += value.to_bytes(2, "big")
+        return bytes(payload)
+
+    def __post_init__(self) -> None:
+        """Validate the request fields."""
+        validate_register_address(self.read_address)
+        validate_register_count(self.read_count)
+        validate_register_address(self.write_address)
+        validate_register_count(len(self.values), MAX_READ_WRITE_REGISTERS_WRITE)
+        for value in self.values:
+            validate_register_value(value)
+
+
+@dataclass(frozen=True)
 class ExceptionResponse:
     """Modbus exception response PDU."""
 
@@ -889,6 +933,13 @@ def decode_response_pdu(data: bytes, request: RequestPDU) -> ResponsePDU:
         FunctionCode.READ_INPUT_REGISTERS,
     ):
         return ReadRegistersResponse.decode(function_code, payload)
+    if function_code == FunctionCode.READ_WRITE_MULTIPLE_REGISTERS:
+        if not isinstance(request, ReadWriteMultipleRegistersRequest):
+            raise ValueError()
+        response = ReadRegistersResponse.decode(function_code, payload)
+        if len(response.values) != request.read_count:
+            raise ValueError("read register response count does not match request")
+        return response
     if function_code == FunctionCode.WRITE_SINGLE_COIL:
         return WriteSingleCoilResponse.decode(payload)
     if function_code == FunctionCode.WRITE_SINGLE_REGISTER:
@@ -1009,6 +1060,37 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
             for i in range(0, len(register_bytes), 2)
         ]
         return WriteMultipleRegistersRequest(address=address, values=values)
+
+    if function_code == FunctionCode.READ_WRITE_MULTIPLE_REGISTERS:
+        if len(payload) < 9:
+            raise ValueError(
+                "read/write multiple registers request payload is too short"
+            )
+
+        read_address = int.from_bytes(payload[0:2], "big")
+        read_count = int.from_bytes(payload[2:4], "big")
+        write_address = int.from_bytes(payload[4:6], "big")
+        write_count = int.from_bytes(payload[6:8], "big")
+        byte_count = payload[8]
+        register_bytes = payload[9:]
+
+        if byte_count != len(register_bytes):
+            raise ValueError("register byte count does not match payload length")
+        if byte_count % 2 != 0:
+            raise ValueError("register byte count must be even")
+        if write_count != byte_count // 2:
+            raise ValueError("register count does not match byte count")
+
+        values = [
+            int.from_bytes(register_bytes[i : i + 2], "big")
+            for i in range(0, len(register_bytes), 2)
+        ]
+        return ReadWriteMultipleRegistersRequest(
+            read_address=read_address,
+            read_count=read_count,
+            write_address=write_address,
+            values=values,
+        )
     else:
         custom_request = default_function_code_registry.decode_request(
             function_code=function_code,

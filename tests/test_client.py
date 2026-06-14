@@ -15,6 +15,7 @@ from clear_modbus.protocol.pdu import (
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
+    ReadWriteMultipleRegistersRequest,
     WriteMultipleCoilsRequest,
     WriteMultipleCoilsResponse,
     WriteMultipleRegistersRequest,
@@ -410,6 +411,37 @@ async def test_write_multiple_registers_verifies_echoed_address_and_count() -> N
 
 
 @pytest.mark.asyncio
+async def test_read_write_multiple_registers_builds_request_and_returns_read_response() -> (
+    None
+):
+    client = ModbusTcpClient(host="127.0.0.1")
+    captured: dict[str, object] = {}
+
+    async def fake_execute(request, unit_id=None):
+        captured["request"] = request
+        captured["unit_id"] = unit_id
+        return ReadRegistersResponse(function_code=0x17, values=[55, 66])
+
+    client.execute = fake_execute
+
+    response = await client.read_write_multiple_registers(
+        read_address=0,
+        read_count=2,
+        write_address=2,
+        values=[10, 20],
+        unit_id=7,
+    )
+
+    assert isinstance(captured["request"], ReadWriteMultipleRegistersRequest)
+    assert captured["request"].read_address == 0
+    assert captured["request"].read_count == 2
+    assert captured["request"].write_address == 2
+    assert captured["request"].values == [10, 20]
+    assert captured["unit_id"] == 7
+    assert response == ReadRegistersResponse(function_code=0x17, values=[55, 66])
+
+
+@pytest.mark.asyncio
 async def test_write_multiple_coils_verifies_echoed_address_and_count() -> None:
     client = ModbusTcpClient(host="127.0.0.1")
     captured: dict[str, object] = {}
@@ -475,6 +507,45 @@ async def test_write_multiple_registers_raises_for_exception_response() -> None:
 
     assert exc_info.value.function_code == 0x10
     assert exc_info.value.exception_code == 0x03
+
+
+@pytest.mark.asyncio
+async def test_read_write_multiple_registers_raises_for_exception_response() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+
+    async def fake_execute(request, unit_id=None):
+        return ExceptionResponse(function_code=0x17, exception_code=0x03)
+
+    client.execute = fake_execute
+
+    with pytest.raises(ModbusExceptionResponseError) as exc_info:
+        await client.read_write_multiple_registers(
+            read_address=0,
+            read_count=2,
+            write_address=2,
+            values=[10, 20],
+        )
+
+    assert exc_info.value.function_code == 0x17
+    assert exc_info.value.exception_code == 0x03
+
+
+@pytest.mark.asyncio
+async def test_read_write_multiple_registers_rejects_wrong_response_type() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+
+    async def fake_execute(request, unit_id=None):
+        return WriteMultipleRegistersResponse(function_code=0x10, address=0, count=2)
+
+    client.execute = fake_execute
+
+    with pytest.raises(ModbusResponseMismatchError):
+        await client.read_write_multiple_registers(
+            read_address=0,
+            read_count=2,
+            write_address=2,
+            values=[10, 20],
+        )
 
 
 @pytest.mark.asyncio

@@ -12,6 +12,7 @@ from clear_modbus.protocol.pdu import (
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
+    ReadWriteMultipleRegistersRequest,
     RequestPDU,
     ResponsePDU,
     WriteMultipleCoilsRequest,
@@ -345,6 +346,52 @@ class ModbusClientOperations:
             raise ModbusResponseMismatchError(
                 "Response count does not match expected count."
             )
+        return response
+
+    async def read_write_multiple_registers(
+        self,
+        read_address: int,
+        read_count: int,
+        write_address: int,
+        values: list[int],
+        unit_id: int | None = None,
+    ) -> ReadRegistersResponse:
+        """Write and read holding-register values in one request.
+
+        Parameters
+        ----------
+        read_address : int
+            First holding-register address to read.
+        read_count : int
+            Number of holding registers to read.
+        write_address : int
+            First holding-register address to write.
+        values : list[int]
+            Register values to write.
+        unit_id : int | None
+            Unit identifier override.
+
+        Returns
+        -------
+        ReadRegistersResponse
+            Decoded holding-register values read after the write.
+
+        Raises
+        ------
+        ModbusResponseMismatchError
+            If the decoded response is not a read-registers response.
+
+        """
+        request = ReadWriteMultipleRegistersRequest(
+            read_address=read_address,
+            read_count=read_count,
+            write_address=write_address,
+            values=values,
+        )
+        response = await self.execute(request, unit_id=unit_id)
+        raise_for_exception_response(response)
+        if not isinstance(response, ReadRegistersResponse):
+            raise ModbusResponseMismatchError("Expected ReadRegistersResponse.")
         return response
 
     async def write_multiple_coils(
