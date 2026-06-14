@@ -44,6 +44,12 @@ Write operations use the same high-level method names as the TCP client:
        address=20,
        values=[100, 200, 300],
    )
+   read_after_write = await client.read_write_multiple_registers(
+       read_address=0,
+       read_count=2,
+       write_address=20,
+       values=[100, 200],
+   )
    single_coil = await client.write_single_coil(address=0, value=True)
    multiple_coils = await client.write_multiple_coils(
        address=1,
@@ -67,7 +73,7 @@ RTU request handling works like this
 Modbus RTU responses do not include a frame length field.
 Therefore the client must determine the expected response size from the request type and first response bytes.
 
-Read responses use a byte-count field.
+Read responses and read/write multiple-register responses use a byte-count field.
 The response begins with
 
 - unit id

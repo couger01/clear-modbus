@@ -12,6 +12,7 @@ from clear_modbus import (
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
+    ReadWriteMultipleRegistersRequest,
     WriteMultipleCoilsRequest,
     WriteMultipleCoilsResponse,
     WriteMultipleRegistersRequest,
@@ -225,6 +226,21 @@ class ModbusTcpServer:
                         function_code=request.function_code,
                         address=address,
                         count=len(values),
+                    )
+                case ReadWriteMultipleRegistersRequest(
+                    read_address=read_address,
+                    read_count=read_count,
+                    write_address=write_address,
+                    values=values,
+                ):
+                    self.datastore.get_holding_registers(read_address, read_count)
+                    self.datastore.set_holding_registers(write_address, values)
+                    values = self.datastore.get_holding_registers(
+                        read_address, read_count
+                    )
+                    return ReadRegistersResponse(
+                        function_code=request.function_code,
+                        values=values,
                     )
                 case _:
                     return ExceptionResponse(

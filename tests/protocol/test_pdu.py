@@ -22,6 +22,7 @@ from clear_modbus.protocol.pdu import (
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
+    ReadWriteMultipleRegistersRequest,
     WriteMultipleCoilsRequest,
     WriteMultipleRegistersRequest,
     WriteSingleCoilRequest,
@@ -136,6 +137,19 @@ INTEROPERABILITY_PDU_CASES = [
         bytes.fromhex("10 00 00 00 02"),
         WriteMultipleRegistersResponse(function_code=0x10, address=0, count=2),
         id="write-multiple-registers",
+    ),
+    pytest.param(
+        FunctionCode.READ_WRITE_MULTIPLE_REGISTERS,
+        ReadWriteMultipleRegistersRequest(
+            read_address=0x0000,
+            read_count=2,
+            write_address=0x0002,
+            values=[10, 20],
+        ),
+        bytes.fromhex("17 00 00 00 02 00 02 00 02 04 00 0A 00 14"),
+        bytes.fromhex("17 04 00 37 00 42"),
+        ReadRegistersResponse(function_code=0x17, values=[55, 66]),
+        id="read-write-multiple-registers",
     ),
 ]
 
@@ -336,6 +350,19 @@ def test_write_multiple_registers_request_encodes_expected_pdu() -> None:
     assert request.encode() == bytes.fromhex("10 00 00 00 02 04 00 0A 00 14")
 
 
+def test_read_write_multiple_registers_request_encodes_expected_pdu() -> None:
+    request = ReadWriteMultipleRegistersRequest(
+        read_address=0,
+        read_count=2,
+        write_address=2,
+        values=[10, 20],
+    )
+
+    assert request.encode() == bytes.fromhex(
+        "17 00 00 00 02 00 02 00 02 04 00 0A 00 14"
+    )
+
+
 def test_write_multiple_coils_request_encodes_expected_pdu() -> None:
     request = WriteMultipleCoilsRequest(
         address=0,
@@ -370,6 +397,24 @@ def test_decode_response_pdu_dispatches_by_request_type() -> None:
     data = bytes.fromhex("03 04 00 0A 00 14")
     response = decode_response_pdu(request=request, data=data)
     assert isinstance(response, ReadRegistersResponse)
+
+
+def test_decode_response_pdu_rejects_read_write_register_count_mismatch() -> None:
+    request = ReadWriteMultipleRegistersRequest(
+        read_address=0,
+        read_count=2,
+        write_address=2,
+        values=[10, 20],
+    )
+
+    with pytest.raises(ValueError):
+        decode_response_pdu(request=request, data=bytes.fromhex("17 02 00 0A"))
+
+    with pytest.raises(ValueError):
+        decode_response_pdu(
+            request=request,
+            data=bytes.fromhex("17 06 00 0A 00 14 00 1E"),
+        )
 
 
 def test_decode_response_pdu_dispatches_bit_response_by_request_type() -> None:
@@ -432,6 +477,19 @@ def test_decode_request_pdu_decodes_write_multiple_registers_request() -> None:
     assert request == WriteMultipleRegistersRequest(address=0, values=[10, 20])
 
 
+def test_decode_request_pdu_decodes_read_write_multiple_registers_request() -> None:
+    request = decode_request_pdu(
+        bytes.fromhex("17 00 00 00 02 00 02 00 02 04 00 0A 00 14")
+    )
+
+    assert request == ReadWriteMultipleRegistersRequest(
+        read_address=0,
+        read_count=2,
+        write_address=2,
+        values=[10, 20],
+    )
+
+
 def test_decode_request_pdu_decodes_write_multiple_coils_request() -> None:
     request = decode_request_pdu(bytes.fromhex("0F 00 00 00 09 02 8D 01"))
 
@@ -454,6 +512,26 @@ def test_decode_request_pdu_rejects_bad_payload_length() -> None:
 def test_decode_request_pdu_rejects_bad_write_multiple_byte_count() -> None:
     with pytest.raises(ValueError):
         decode_request_pdu(bytes.fromhex("10 00 00 00 02 06 00 0A 00 14"))
+
+
+def test_decode_request_pdu_rejects_bad_read_write_multiple_byte_count() -> None:
+    with pytest.raises(ValueError):
+        decode_request_pdu(bytes.fromhex("17 00 00 00 02 00 02 00 02 06 00 0A 00 14"))
+
+
+def test_decode_request_pdu_rejects_bad_read_write_multiple_write_count() -> None:
+    with pytest.raises(ValueError):
+        decode_request_pdu(bytes.fromhex("17 00 00 00 02 00 02 00 03 04 00 0A 00 14"))
+
+
+def test_read_write_multiple_registers_request_rejects_too_many_write_values() -> None:
+    with pytest.raises(ValueError):
+        ReadWriteMultipleRegistersRequest(
+            read_address=0,
+            read_count=1,
+            write_address=0,
+            values=[0] * 122,
+        )
 
 
 def test_decode_request_pdu_rejects_unsupported_function_code() -> None:

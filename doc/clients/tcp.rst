@@ -35,6 +35,12 @@ Write operations return Modbus echo responses:
        address=20,
        values=[100, 200, 300],
    )
+   read_after_write = await client.read_write_multiple_registers(
+       read_address=0,
+       read_count=2,
+       write_address=20,
+       values=[100, 200],
+   )
    single_coil = await client.write_single_coil(address=0, value=True)
    multiple_coils = await client.write_multiple_coils(
        address=1,

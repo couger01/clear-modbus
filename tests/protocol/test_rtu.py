@@ -11,6 +11,7 @@ from clear_modbus.protocol.pdu import (
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
     ReadRegistersResponse,
+    ReadWriteMultipleRegistersRequest,
     WriteMultipleCoilsRequest,
     WriteMultipleRegistersRequest,
     WriteSingleCoilRequest,
@@ -194,6 +195,12 @@ def test_fixed_rtu_response_size_returns_write_echo_size(request_pdu) -> None:
         ReadDiscreteInputsRequest(address=0, count=2),
         ReadHoldingRegistersRequest(address=0, count=2),
         ReadInputRegistersRequest(address=0, count=2),
+        ReadWriteMultipleRegistersRequest(
+            read_address=0,
+            read_count=2,
+            write_address=2,
+            values=[10, 20],
+        ),
     ],
 )
 def test_fixed_rtu_response_size_returns_none_for_variable_read_size(
@@ -224,6 +231,17 @@ def test_rtu_response_size_from_prefix_returns_none_for_read_registers() -> None
     request = ReadHoldingRegistersRequest(address=0, count=2)
 
     assert rtu_response_size_from_prefix(bytes.fromhex("01 03"), request) is None
+
+
+def test_rtu_response_size_from_prefix_returns_none_for_read_write_registers() -> None:
+    request = ReadWriteMultipleRegistersRequest(
+        read_address=0,
+        read_count=2,
+        write_address=2,
+        values=[10, 20],
+    )
+
+    assert rtu_response_size_from_prefix(bytes.fromhex("01 17"), request) is None
 
 
 def test_rtu_response_size_from_prefix_rejects_bad_prefix_length() -> None:
