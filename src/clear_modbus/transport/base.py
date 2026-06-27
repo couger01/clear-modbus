@@ -21,3 +21,8 @@ class Transport(Protocol):
     async def receive(self, size: int) -> bytes:
         """Read exactly size bytes or raise timeout/connection errors."""
         ...
+
+    @property
+    def connected(self) -> bool:
+        """Whether the underlying connection resource is open."""
+        ...

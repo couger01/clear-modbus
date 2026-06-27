@@ -136,3 +136,8 @@ class ModbusTcpClient(ModbusClientOperations):
             expected_unit_id=unit_id,
         )
         return response
+
+    @property
+    def connected(self) -> bool:
+        """Whether the underlying TCP transport is connected."""
+        return self.transport.connected

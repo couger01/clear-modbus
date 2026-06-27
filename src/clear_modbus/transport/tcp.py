@@ -181,3 +181,8 @@ class TCPTransport:
             raise ModbusTransportError(e)
         except ConnectionError as e:
             raise ModbusConnectionError(e)
+
+    @property
+    def connected(self) -> bool:
+        """Whether the transport is connected."""
+        return self.stream_writer is not None and not self.stream_writer.is_closing()

@@ -1,0 +1,1 @@
+Added connected property to clients and transports.

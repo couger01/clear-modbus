@@ -30,10 +30,10 @@ jobs:
           cache-dependency-glob: uv.lock
 
       - name: Install dependencies
-        run: uv sync --dev --locked
+        run: uv sync --group nox --locked
 
       - name: Run pre-commit
-        run: uv run pre-commit run --all-files
+        run: uv run nox -s pre_commit
 
   tests:
     name: Unit tests
@@ -55,7 +55,7 @@ jobs:
           cache-dependency-glob: uv.lock
 
       - name: Install dependencies
-        run: uv sync --dev --locked
+        run: uv sync --group nox --locked
 
       - name: Run unit tests
-        run: uv run pytest
+        run: uv run nox -s tests

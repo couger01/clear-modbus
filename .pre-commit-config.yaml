@@ -18,3 +18,9 @@ repos:
         entry: uv run ty check src
         language: system
         pass_filenames: false
+
+      - id: towncrier-check
+        name: towncrier check
+        entry: uv run towncrier check --staged
+        language: system
+        pass_filenames: false

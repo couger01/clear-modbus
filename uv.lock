@@ -183,6 +183,7 @@ nox = [
 ]
 pre-commit = [
     { name = "pre-commit" },
+    { name = "towncrier" },
 ]
 test = [
     { name = "pytest" },
@@ -214,7 +215,10 @@ docs = [
     { name = "sphinx-automodapi", specifier = ">=0.22.0" },
 ]
 nox = [{ name = "nox-uv", specifier = ">=0.8.0" }]
-pre-commit = [{ name = "pre-commit", specifier = ">=4.0.0" }]
+pre-commit = [
+    { name = "pre-commit", specifier = ">=4.0.0" },
+    { name = "towncrier", specifier = ">=25.8.0" },
+]
 test = [
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-asyncio", specifier = ">=1.3.0" },

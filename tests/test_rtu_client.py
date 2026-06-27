@@ -38,6 +38,7 @@ class FakeTransport:
         self.connected = True
 
     async def close(self) -> None:
+        self.connected = False
         self.closed = True
 
     async def send(self, data: bytes) -> None:
@@ -70,6 +71,7 @@ def test_rtu_client_initializes_serial_transport_and_codec() -> None:
     assert client.baudrate == 19200
     assert client.timeout == 2
     assert isinstance(client.transport, SerialTransport)
+    assert client.connected is False
 
 
 @pytest.mark.asyncio
@@ -77,11 +79,15 @@ async def test_rtu_client_context_manager_connects_and_closes() -> None:
     transport = FakeTransport()
     client = ModbusRtuClient(port="/dev/ttyUSB0", transport=transport)
 
+    assert client.connected is False
+
     async with client as active_client:
         assert active_client is client
+        assert client.connected is True
         assert transport.connected is True
         assert transport.closed is False
 
+    assert client.connected is False
     assert transport.closed is True
 
 

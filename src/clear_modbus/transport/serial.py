@@ -205,3 +205,8 @@ class SerialTransport:
                 "Serial read returned fewer bytes than requested."
             )
         return data
+
+    @property
+    def connected(self) -> bool:
+        """Whether the transport is open."""
+        return self.serial_connection is not None and self.serial_connection.is_open

@@ -144,3 +144,8 @@ class ModbusRtuClient(ModbusClientOperations):
             request=request,
             expected_unit_id=unit_id,
         )
+
+    @property
+    def connected(self) -> bool:
+        """Whether the underlying serial transport is connected."""
+        return self.transport.connected

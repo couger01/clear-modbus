@@ -30,6 +30,7 @@ class FakeSerialConnection:
         self.writes: list[bytes] = []
         self.read_sizes: list[int] = []
         self.closed = False
+        self.is_open = True
 
     def write(self, data: bytes) -> int:
         if self.write_error is not None:
@@ -47,6 +48,7 @@ class FakeSerialConnection:
 
     def close(self) -> None:
         self.closed = True
+        self.is_open = False
         if self.close_error is not None:
             raise self.close_error
 
@@ -58,6 +60,19 @@ def test_serial_transport_initializes_connection_settings() -> None:
     assert transport.baudrate == 19200
     assert transport.timeout == 2
     assert transport.serial_connection is None
+    assert transport.connected is False
+
+
+def test_serial_transport_connected_reflects_serial_state() -> None:
+    transport = SerialTransport(port="/dev/ttyUSB0")
+    serial_connection = FakeSerialConnection()
+    transport.serial_connection = serial_connection
+
+    assert transport.connected is True
+
+    serial_connection.close()
+
+    assert transport.connected is False
 
 
 @pytest.mark.asyncio

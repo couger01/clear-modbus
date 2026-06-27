@@ -40,6 +40,9 @@ class FakeStreamWriter:
     def close(self) -> None:
         self.closed = True
 
+    def is_closing(self) -> bool:
+        return self.closed
+
     async def wait_closed(self) -> None:
         self.wait_closed_called = True
         if self.wait_closed_error is not None:
@@ -72,6 +75,19 @@ def test_tcp_transport_initializes_connection_settings() -> None:
     assert transport.timeout == 5
     assert transport.stream_reader is None
     assert transport.stream_writer is None
+    assert transport.connected is False
+
+
+def test_tcp_transport_connected_reflects_writer_state() -> None:
+    transport = TCPTransport(host="127.0.0.1")
+    writer = FakeStreamWriter()
+    transport.stream_writer = writer
+
+    assert transport.connected is True
+
+    writer.close()
+
+    assert transport.connected is False
 
 
 @pytest.mark.asyncio
@@ -93,12 +109,14 @@ async def test_tcp_transport_async_context_manager_connects_and_closes(
     async with TCPTransport(host="127.0.0.1") as transport:
         assert transport.stream_reader is reader
         assert transport.stream_writer is writer
+        assert transport.connected is True
         assert writer.closed is False
 
     assert writer.closed is True
     assert writer.wait_closed_called is True
     assert transport.stream_reader is None
     assert transport.stream_writer is None
+    assert transport.connected is False
 
 
 @pytest.mark.asyncio

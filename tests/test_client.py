@@ -39,6 +39,7 @@ class FakeTransport:
         self.connected = True
 
     async def close(self) -> None:
+        self.connected = False
         self.closed = True
 
     async def send(self, data: bytes) -> None:
@@ -65,6 +66,7 @@ def test_client_initializes_transport_codec_and_transaction_counter() -> None:
     assert client.timeout == 5
     assert isinstance(client.codec, ModbusTCPCodec)
     assert isinstance(client.transport, TCPTransport)
+    assert client.connected is False
 
 
 def test_next_transaction_id_starts_at_one_and_wraps() -> None:
@@ -82,11 +84,15 @@ async def test_client_context_manager_connects_and_closes() -> None:
     transport = FakeTransport()
     client.transport = transport
 
+    assert client.connected is False
+
     async with client as active_client:
         assert active_client is client
+        assert client.connected is True
         assert transport.connected is True
         assert transport.closed is False
 
+    assert client.connected is False
     assert transport.closed is True
 
 
