@@ -1,6 +1,7 @@
 """Modbus TCP MBAP header and frame helpers."""
 
 from dataclasses import dataclass
+from struct import pack, unpack
 
 from clear_modbus.constants import MODBUS_TCP_PROTOCOL_ID
 from clear_modbus.exceptions import ModbusFrameError
@@ -50,12 +51,13 @@ class MBAPHeader:
             Encoded MBAP header.
 
         """
-        header = bytearray()
-        header += self.transaction_id.to_bytes(2, "big")
-        header += self.protocol_id.to_bytes(2, "big")
-        header += self.length.to_bytes(2, "big")
-        header.append(self.unit_id)
-        return bytes(header)
+        return pack(
+            ">HHHB",
+            self.transaction_id,
+            self.protocol_id,
+            self.length,
+            self.unit_id,
+        )
 
     @classmethod
     def decode(cls, data: bytes) -> "MBAPHeader":
@@ -79,10 +81,7 @@ class MBAPHeader:
         """
         if len(data) != 7:
             raise ModbusFrameError("MBAP header must be exactly 7 bytes.")
-        transaction_id = int.from_bytes(data[0:2], "big")
-        protocol_id = int.from_bytes(data[2:4], "big")
-        length = int.from_bytes(data[4:6], "big")
-        unit_id = data[6]
+        transaction_id, protocol_id, length, unit_id = unpack(">HHHB", data)
         return cls(
             transaction_id=transaction_id,
             protocol_id=protocol_id,
@@ -140,10 +139,7 @@ class ModbusTCPFrame:
             length=length,
             protocol_id=self.protocol_id,
         )
-        frame = bytearray()
-        frame += header.encode()
-        frame += self.pdu
-        return bytes(frame)
+        return header.encode() + self.pdu
 
     @classmethod
     def decode(cls, data: bytes) -> "ModbusTCPFrame":

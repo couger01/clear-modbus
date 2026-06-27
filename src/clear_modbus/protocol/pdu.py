@@ -1,6 +1,7 @@
 """Protocol Data Unit types and decoders for supported Modbus functions."""
 
 from dataclasses import dataclass
+from struct import pack, unpack, unpack_from
 from typing import ClassVar, Protocol
 
 from clear_modbus.exceptions import ModbusPDUError
@@ -216,11 +217,7 @@ class ReadCoilsRequest:
             Encoded request PDU.
 
         """
-        return (
-            bytes([self.function_code])
-            + self.address.to_bytes(2, "big")
-            + self.count.to_bytes(2, "big")
-        )
+        return pack(">BHH", self.function_code, self.address, self.count)
 
     def __post_init__(self) -> None:
         """Validate the request fields."""
@@ -246,11 +243,7 @@ class ReadDiscreteInputsRequest:
             Encoded request PDU.
 
         """
-        return (
-            bytes([self.function_code])
-            + self.address.to_bytes(2, "big")
-            + self.count.to_bytes(2, "big")
-        )
+        return pack(">BHH", self.function_code, self.address, self.count)
 
     def __post_init__(self) -> None:
         """Validate the request fields."""
@@ -334,11 +327,7 @@ class ReadHoldingRegistersRequest:
             Encoded request PDU.
 
         """
-        return (
-            bytes([self.function_code])
-            + self.address.to_bytes(2, "big")
-            + self.count.to_bytes(2, "big")
-        )
+        return pack(">BHH", self.function_code, self.address, self.count)
 
     def __post_init__(self) -> None:
         """Validate the request fields."""
@@ -364,11 +353,7 @@ class ReadInputRegistersRequest:
             Encoded request PDU.
 
         """
-        payload = bytearray()
-        payload.append(self.function_code)
-        payload += self.address.to_bytes(2, "big")
-        payload += self.count.to_bytes(2, "big")
-        return bytes(payload)
+        return pack(">BHH", self.function_code, self.address, self.count)
 
     def __post_init__(self) -> None:
         """Validate the request fields."""
@@ -392,14 +377,10 @@ class ReadRegistersResponse:
             Encoded response PDU.
 
         """
-        payload = bytearray()
-        payload.append(self.function_code)
-        payload.append(len(self.values) * 2)
-
-        for value in self.values:
-            payload += value.to_bytes(2, "big")
-
-        return bytes(payload)
+        byte_count = len(self.values) * 2
+        return pack(
+            f">BB{len(self.values)}H", self.function_code, byte_count, *self.values
+        )
 
     @classmethod
     def decode(cls, function_code: int, payload: bytes) -> "ReadRegistersResponse":
@@ -433,10 +414,7 @@ class ReadRegistersResponse:
             raise ValueError("Register byte count does not match payload length")
         if byte_count % 2 != 0:
             raise ValueError("Register byte count must be even")
-        values = [
-            int.from_bytes(register_bytes[i : i + 2], "big")
-            for i in range(0, len(register_bytes), 2)
-        ]
+        values = list(unpack(f">{byte_count // 2}H", register_bytes))
 
         return cls(function_code=function_code, values=values)
 
@@ -459,11 +437,7 @@ class WriteSingleRegisterRequest:
             Encoded request PDU.
 
         """
-        return (
-            bytes([self.function_code])
-            + self.address.to_bytes(2, "big")
-            + self.value.to_bytes(2, "big")
-        )
+        return pack(">BHH", self.function_code, self.address, self.value)
 
     def __post_init__(self) -> None:
         """Validate the request fields."""
@@ -488,11 +462,7 @@ class WriteSingleRegisterResponse:
             Encoded response PDU.
 
         """
-        return (
-            bytes([self.function_code])
-            + self.address.to_bytes(2, "big")
-            + self.value.to_bytes(2, "big")
-        )
+        return pack(">BHH", self.function_code, self.address, self.value)
 
     @classmethod
     def decode(cls, payload: bytes) -> "WriteSingleRegisterResponse":
@@ -520,8 +490,7 @@ class WriteSingleRegisterResponse:
         if len(payload) != 4:
             raise ValueError()
 
-        address = int.from_bytes(payload[0:2], "big")
-        value = int.from_bytes(payload[2:4], "big")
+        address, value = unpack(">HH", payload)
 
         return cls(function_code=0x06, address=address, value=value)
 
@@ -545,11 +514,7 @@ class WriteSingleCoilRequest:
 
         """
         encoded_value = COIL_ON if self.value else COIL_OFF
-        return (
-            bytes([self.function_code])
-            + self.address.to_bytes(2, "big")
-            + encoded_value.to_bytes(2, "big")
-        )
+        return pack(">BHH", self.function_code, self.address, encoded_value)
 
     def __post_init__(self) -> None:
         """Validate the request fields.
@@ -583,11 +548,7 @@ class WriteSingleCoilResponse:
 
         """
         encoded_value = COIL_ON if self.value else COIL_OFF
-        return (
-            bytes([self.function_code])
-            + self.address.to_bytes(2, "big")
-            + encoded_value.to_bytes(2, "big")
-        )
+        return pack(">BHH", self.function_code, self.address, encoded_value)
 
     @classmethod
     def decode(cls, payload: bytes) -> "WriteSingleCoilResponse":
@@ -611,8 +572,7 @@ class WriteSingleCoilResponse:
         """
         if len(payload) != 4:
             raise ValueError()
-        address = int.from_bytes(payload[0:2], "big")
-        encoded_value = int.from_bytes(payload[2:4], "big")
+        address, encoded_value = unpack(">HH", payload)
         if encoded_value == COIL_ON:
             value = True
         elif encoded_value == COIL_OFF:
@@ -641,14 +601,14 @@ class WriteMultipleRegistersRequest:
 
         """
         byte_count = len(self.values) * 2
-        payload = bytearray()
-        payload.append(self.function_code)
-        payload += self.address.to_bytes(2, "big")
-        payload += len(self.values).to_bytes(2, "big")
-        payload.append(byte_count)
-        for value in self.values:
-            payload += value.to_bytes(2, "big")
-        return bytes(payload)
+        return pack(
+            f">BHHB{len(self.values)}H",
+            self.function_code,
+            self.address,
+            len(self.values),
+            byte_count,
+            *self.values,
+        )
 
     def __post_init__(self) -> None:
         """Validate the request fields."""
@@ -675,11 +635,7 @@ class WriteMultipleRegistersResponse:
             Encoded response PDU.
 
         """
-        return (
-            bytes([self.function_code])
-            + self.address.to_bytes(2, "big")
-            + self.count.to_bytes(2, "big")
-        )
+        return pack(">BHH", self.function_code, self.address, self.count)
 
     @classmethod
     def decode(cls, payload: bytes) -> "WriteMultipleRegistersResponse":
@@ -703,8 +659,7 @@ class WriteMultipleRegistersResponse:
         """
         if len(payload) != 4:
             raise ValueError()
-        address = int.from_bytes(payload[0:2], "big")
-        count = int.from_bytes(payload[2:4], "big")
+        address, count = unpack(">HH", payload)
         return cls(function_code=0x10, address=address, count=count)
 
 
@@ -727,13 +682,16 @@ class WriteMultipleCoilsRequest:
 
         """
         packed_values = pack_bits(self.values)
-        payload = bytearray()
-        payload.append(self.function_code)
-        payload += self.address.to_bytes(2, "big")
-        payload += len(self.values).to_bytes(2, "big")
-        payload.append(len(packed_values))
-        payload += packed_values
-        return bytes(payload)
+        return (
+            pack(
+                ">BHHB",
+                self.function_code,
+                self.address,
+                len(self.values),
+                len(packed_values),
+            )
+            + packed_values
+        )
 
     def __post_init__(self) -> None:
         """Validate the request fields.
@@ -768,11 +726,7 @@ class WriteMultipleCoilsResponse:
             Encoded response PDU.
 
         """
-        return (
-            bytes([self.function_code])
-            + self.address.to_bytes(2, "big")
-            + self.count.to_bytes(2, "big")
-        )
+        return pack(">BHH", self.function_code, self.address, self.count)
 
     @classmethod
     def decode(cls, payload: bytes) -> "WriteMultipleCoilsResponse":
@@ -796,8 +750,7 @@ class WriteMultipleCoilsResponse:
         """
         if len(payload) != 4:
             raise ValueError()
-        address = int.from_bytes(payload[0:2], "big")
-        count = int.from_bytes(payload[2:4], "big")
+        address, count = unpack(">HH", payload)
         return cls(function_code=0x0F, address=address, count=count)
 
 
@@ -822,16 +775,16 @@ class ReadWriteMultipleRegistersRequest:
 
         """
         byte_count = len(self.values) * 2
-        payload = bytearray()
-        payload.append(self.function_code)
-        payload += self.read_address.to_bytes(2, "big")
-        payload += self.read_count.to_bytes(2, "big")
-        payload += self.write_address.to_bytes(2, "big")
-        payload += len(self.values).to_bytes(2, "big")
-        payload.append(byte_count)
-        for value in self.values:
-            payload += value.to_bytes(2, "big")
-        return bytes(payload)
+        return pack(
+            f">BHHHHB{len(self.values)}H",
+            self.function_code,
+            self.read_address,
+            self.read_count,
+            self.write_address,
+            len(self.values),
+            byte_count,
+            *self.values,
+        )
 
     def __post_init__(self) -> None:
         """Validate the request fields."""
@@ -994,8 +947,7 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
     ):
         if len(payload) != 4:
             raise ValueError("read request payload must be 4 bytes")
-        address = int.from_bytes(payload[0:2], "big")
-        count = int.from_bytes(payload[2:4], "big")
+        address, count = unpack(">HH", payload)
         if function_code == FunctionCode.READ_COILS:
             return ReadCoilsRequest(address=address, count=count)
         if function_code == FunctionCode.READ_DISCRETE_INPUTS:
@@ -1007,8 +959,7 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
     if function_code == FunctionCode.WRITE_SINGLE_COIL:
         if len(payload) != 4:
             raise ValueError("write single coil request payload must be 4 bytes")
-        address = int.from_bytes(payload[0:2], "big")
-        encoded_value = int.from_bytes(payload[2:4], "big")
+        address, encoded_value = unpack(">HH", payload)
         if encoded_value == COIL_ON:
             return WriteSingleCoilRequest(address=address, value=True)
         if encoded_value == COIL_OFF:
@@ -1018,16 +969,14 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
     if function_code == FunctionCode.WRITE_SINGLE_REGISTER:
         if len(payload) != 4:
             raise ValueError("write single register request payload must be 4 bytes")
-        address = int.from_bytes(payload[0:2], "big")
-        value = int.from_bytes(payload[2:4], "big")
+        address, value = unpack(">HH", payload)
         return WriteSingleRegisterRequest(address=address, value=value)
 
     if function_code == FunctionCode.WRITE_MULTIPLE_COILS:
         if len(payload) < 5:
             raise ValueError("write multiple coils request payload is too short")
 
-        address = int.from_bytes(payload[0:2], "big")
-        count = int.from_bytes(payload[2:4], "big")
+        address, count = unpack_from(">HH", payload)
         byte_count = payload[4]
         bit_bytes = payload[5:]
 
@@ -1043,8 +992,7 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
         if len(payload) < 5:
             raise ValueError("write multiple registers request payload is too short")
 
-        address = int.from_bytes(payload[0:2], "big")
-        count = int.from_bytes(payload[2:4], "big")
+        address, count = unpack_from(">HH", payload)
         byte_count = payload[4]
         register_bytes = payload[5:]
 
@@ -1055,10 +1003,7 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
         if count != byte_count // 2:
             raise ValueError("register count does not match byte count")
 
-        values = [
-            int.from_bytes(register_bytes[i : i + 2], "big")
-            for i in range(0, len(register_bytes), 2)
-        ]
+        values = list(unpack(f">{byte_count // 2}H", register_bytes))
         return WriteMultipleRegistersRequest(address=address, values=values)
 
     if function_code == FunctionCode.READ_WRITE_MULTIPLE_REGISTERS:
@@ -1067,10 +1012,9 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
                 "read/write multiple registers request payload is too short"
             )
 
-        read_address = int.from_bytes(payload[0:2], "big")
-        read_count = int.from_bytes(payload[2:4], "big")
-        write_address = int.from_bytes(payload[4:6], "big")
-        write_count = int.from_bytes(payload[6:8], "big")
+        read_address, read_count, write_address, write_count = unpack_from(
+            ">HHHH", payload
+        )
         byte_count = payload[8]
         register_bytes = payload[9:]
 
@@ -1081,10 +1025,7 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
         if write_count != byte_count // 2:
             raise ValueError("register count does not match byte count")
 
-        values = [
-            int.from_bytes(register_bytes[i : i + 2], "big")
-            for i in range(0, len(register_bytes), 2)
-        ]
+        values = list(unpack(f">{byte_count // 2}H", register_bytes))
         return ReadWriteMultipleRegistersRequest(
             read_address=read_address,
             read_count=read_count,

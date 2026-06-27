@@ -28,6 +28,18 @@ RTU_RESPONSE_PREFIX_SIZE = 2
 RTU_EXCEPTION_RESPONSE_SIZE = 5
 RTU_WRITE_REGISTER_RESPONSE_SIZE = 8
 
+
+def _crc16_table_entry(value: int) -> int:
+    for _ in range(8):
+        if value & 0x0001:
+            value = (value >> 1) ^ 0xA001
+        else:
+            value >>= 1
+    return value & 0xFFFF
+
+
+CRC16_MODBUS_TABLE = tuple(_crc16_table_entry(value) for value in range(256))
+
 __all__ = [
     "ModbusRTUCodec",
     "ModbusRTUFrame",
@@ -191,12 +203,7 @@ def crc16_modbus(data: bytes) -> int:
     """
     crc = 0xFFFF
     for byte in data:
-        crc ^= byte
-        for _ in range(8):
-            if crc & 0x0001:
-                crc = (crc >> 1) ^ 0xA001
-            else:
-                crc >>= 1
+        crc = (crc >> 8) ^ CRC16_MODBUS_TABLE[(crc ^ byte) & 0xFF]
     return crc & 0xFFFF
 
 
