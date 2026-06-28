@@ -105,6 +105,26 @@ async def test_simulator_serves_modbus_tcp_client_requests() -> None:
 
 
 @pytest.mark.asyncio
+async def test_simulator_serves_device_identification() -> None:
+    simulator = ModbusSimulator.from_profile(
+        SimulatorProfile(device_identification={0: "Vendor", 1: "Product"}),
+        port=0,
+    )
+
+    async with simulator:
+        async with ModbusTcpClient(
+            host=simulator.host,
+            port=simulator.bound_port,
+        ) as client:
+            response = await client.read_device_identification(read_code=1)
+
+    assert [(item.object_id, item.value) for item in response.objects] == [
+        (0, b"Vendor"),
+        (1, b"Product"),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_simulator_runs_and_cancels_background_tasks() -> None:
     started = asyncio.Event()
     simulator = ModbusSimulator(

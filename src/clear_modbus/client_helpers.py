@@ -8,6 +8,8 @@ from clear_modbus.protocol.pdu import (
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
+    ReadDeviceIdentificationRequest,
+    ReadDeviceIdentificationResponse,
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
@@ -392,6 +394,46 @@ class ModbusClientOperations:
         raise_for_exception_response(response)
         if not isinstance(response, ReadRegistersResponse):
             raise ModbusResponseMismatchError("Expected ReadRegistersResponse.")
+        return response
+
+    async def read_device_identification(
+        self,
+        read_code: int,
+        object_id: int = 0,
+        unit_id: int | None = None,
+    ) -> ReadDeviceIdentificationResponse:
+        """Read device identification objects.
+
+        Parameters
+        ----------
+        read_code : int
+            Read device identification code.
+        object_id : int, optional
+            First or specific object identifier.
+        unit_id : int | None
+            Unit identifier override.
+
+        Returns
+        -------
+        ReadDeviceIdentificationResponse
+            Decoded device-identification response.
+
+        Raises
+        ------
+        ModbusResponseMismatchError
+            If the decoded response is not a device-identification response.
+
+        """
+        request = ReadDeviceIdentificationRequest(
+            read_code=read_code,
+            object_id=object_id,
+        )
+        response = await self.execute(request, unit_id=unit_id)
+        raise_for_exception_response(response)
+        if not isinstance(response, ReadDeviceIdentificationResponse):
+            raise ModbusResponseMismatchError(
+                "Expected ReadDeviceIdentificationResponse."
+            )
         return response
 
     async def write_multiple_coils(

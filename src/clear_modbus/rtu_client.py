@@ -5,7 +5,11 @@ from typing import Self
 
 from clear_modbus.client_helpers import ModbusClientOperations
 from clear_modbus.constants import DEFAULT_UNIT_ID
-from clear_modbus.protocol.pdu import RequestPDU, ResponsePDU
+from clear_modbus.protocol.pdu import (
+    ReadDeviceIdentificationRequest,
+    RequestPDU,
+    ResponsePDU,
+)
 from clear_modbus.protocol.rtu import (
     RTU_RESPONSE_PREFIX_SIZE,
     ModbusRTUCodec,
@@ -128,6 +132,15 @@ class ModbusRtuClient(ModbusClientOperations):
 
         prefix = await self.transport.receive(RTU_RESPONSE_PREFIX_SIZE)
         response_size = rtu_response_size_from_prefix(prefix, request)
+        if response_size is None and isinstance(
+            request, ReadDeviceIdentificationRequest
+        ):
+            data = prefix + await self._receive_read_device_identification_response()
+            return self.codec.decode_response(
+                data=data,
+                request=request,
+                expected_unit_id=unit_id,
+            )
         if response_size is None:
             byte_count_data = await self.transport.receive(1)
             response_size = rtu_byte_count_response_size(byte_count_data[0])
@@ -144,6 +157,27 @@ class ModbusRtuClient(ModbusClientOperations):
             request=request,
             expected_unit_id=unit_id,
         )
+
+    async def _receive_read_device_identification_response(self) -> bytes:
+        """Read a variable-length Read Device Identification RTU response body.
+
+        Returns
+        -------
+        bytes
+            Response bytes after the unit id and function-code prefix.
+
+        """
+        header = await self.transport.receive(6)
+        object_count = header[5]
+        data = bytearray(header)
+        for _ in range(object_count):
+            object_header = await self.transport.receive(2)
+            data.extend(object_header)
+            value_length = object_header[1]
+            if value_length:
+                data.extend(await self.transport.receive(value_length))
+        data.extend(await self.transport.receive(2))
+        return bytes(data)
 
     @property
     def connected(self) -> bool:

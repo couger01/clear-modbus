@@ -32,6 +32,7 @@ usage and integration feedback accumulate.
   - Write multiple coils (`0x0F`)
   - Write multiple registers (`0x10`)
   - Read/write multiple registers (`0x17`)
+  - Read device identification (`0x2B / 0x0E`)
 
 ## Requirements
 
@@ -123,6 +124,27 @@ async def main() -> None:
 
     print(coils.values)
     print(inputs.values)
+
+
+asyncio.run(main())
+```
+
+### Device Identification
+
+```python
+import asyncio
+
+from clear_modbus import DeviceIdentificationReadCode, ModbusTcpClient
+
+
+async def main() -> None:
+    async with ModbusTcpClient(host="127.0.0.1", port=502, unit_id=1) as client:
+        response = await client.read_device_identification(
+            read_code=DeviceIdentificationReadCode.BASIC,
+        )
+
+    for item in response.objects:
+        print(item.object_id, item.value.decode(errors="replace"))
 
 
 asyncio.run(main())

@@ -8,9 +8,12 @@ from clear_modbus.exceptions import (
 )
 from clear_modbus.protocol.codec import ModbusTCPCodec
 from clear_modbus.protocol.pdu import (
+    DeviceIdentificationObject,
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
+    ReadDeviceIdentificationRequest,
+    ReadDeviceIdentificationResponse,
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
@@ -445,6 +448,37 @@ async def test_read_write_multiple_registers_builds_request_and_returns_read_res
     assert captured["request"].values == [10, 20]
     assert captured["unit_id"] == 7
     assert response == ReadRegistersResponse(function_code=0x17, values=[55, 66])
+
+
+@pytest.mark.asyncio
+async def test_read_device_identification_builds_request_and_returns_response() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+    captured: dict[str, object] = {}
+
+    async def fake_execute(request, unit_id=None):
+        captured["request"] = request
+        captured["unit_id"] = unit_id
+        return ReadDeviceIdentificationResponse(
+            read_code=1,
+            conformity_level=1,
+            objects=[DeviceIdentificationObject(object_id=0, value=b"Vendor")],
+        )
+
+    client.execute = fake_execute
+
+    response = await client.read_device_identification(
+        read_code=1,
+        object_id=0,
+        unit_id=7,
+    )
+
+    assert isinstance(captured["request"], ReadDeviceIdentificationRequest)
+    assert captured["request"].read_code == 1
+    assert captured["request"].object_id == 0
+    assert captured["unit_id"] == 7
+    assert response.objects == [
+        DeviceIdentificationObject(object_id=0, value=b"Vendor")
+    ]
 
 
 @pytest.mark.asyncio

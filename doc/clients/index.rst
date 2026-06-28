@@ -17,6 +17,7 @@ Supported high-level operations:
 * ``write_single_register``
 * ``write_multiple_coils``
 * ``write_multiple_registers``
+* ``read_device_identification``
 
 Prefer the high-level read/write methods for normal application code. Use
 ``execute()`` directly when you need lower-level PDU access or future custom

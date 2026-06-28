@@ -6,9 +6,12 @@ from clear_modbus.exceptions import (
     ModbusResponseMismatchError,
 )
 from clear_modbus.protocol.pdu import (
+    DeviceIdentificationObject,
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
+    ReadDeviceIdentificationRequest,
+    ReadDeviceIdentificationResponse,
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
@@ -123,6 +126,39 @@ async def test_execute_decodes_interoperability_byte_count_read_response() -> No
     assert decoded_response == ReadRegistersResponse(
         function_code=0x03,
         values=[555, 0, 100],
+    )
+
+
+@pytest.mark.asyncio
+async def test_execute_decodes_read_device_identification_response() -> None:
+    response_frame = ModbusRTUFrame(
+        unit_id=1,
+        pdu=ReadDeviceIdentificationResponse(
+            read_code=1,
+            conformity_level=1,
+            objects=[DeviceIdentificationObject(object_id=0, value=b"Vendor")],
+        ).encode(),
+    ).encode()
+    transport = FakeTransport(
+        receive_chunks=[
+            response_frame[:2],
+            response_frame[2:8],
+            response_frame[8:10],
+            response_frame[10:16],
+            response_frame[16:],
+        ]
+    )
+    client = ModbusRtuClient(port="/dev/ttyUSB0", transport=transport)
+
+    decoded_response = await client.execute(
+        ReadDeviceIdentificationRequest(read_code=1, object_id=0)
+    )
+
+    assert transport.sent == [bytes.fromhex("01 2B 0E 01 00 70 77")]
+    assert decoded_response == ReadDeviceIdentificationResponse(
+        read_code=1,
+        conformity_level=1,
+        objects=[DeviceIdentificationObject(object_id=0, value=b"Vendor")],
     )
 
 

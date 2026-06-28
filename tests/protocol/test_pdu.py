@@ -5,9 +5,14 @@ import pytest
 
 from clear_modbus import (
     CustomFunctionCodeRegistry,
+    DeviceIdentificationConformityLevel,
+    DeviceIdentificationObject,
+    DeviceIdentificationReadCode,
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
+    ReadDeviceIdentificationRequest,
+    ReadDeviceIdentificationResponse,
     ReadDiscreteInputsRequest,
     WriteMultipleCoilsResponse,
     WriteMultipleRegistersResponse,
@@ -52,6 +57,27 @@ class CustomResponse:
 
     def encode(self) -> bytes:
         return bytes([self.function_code, self.value])
+
+
+@dataclass(frozen=True)
+class CustomEncapsulatedInterfaceRequest:
+    value: int
+
+    function_code: ClassVar[int] = 0x2B
+
+    def encode(self) -> bytes:
+        return bytes([self.function_code, 0x0D, self.value])
+
+
+@dataclass(frozen=True)
+class CustomEncapsulatedInterfaceResponse:
+    value: int
+    request_value: int
+
+    function_code: ClassVar[int] = 0x2B
+
+    def encode(self) -> bytes:
+        return bytes([self.function_code, 0x0D, self.value])
 
 
 @pytest.fixture
@@ -151,6 +177,29 @@ INTEROPERABILITY_PDU_CASES = [
         ReadRegistersResponse(function_code=0x17, values=[55, 66]),
         id="read-write-multiple-registers",
     ),
+    pytest.param(
+        FunctionCode.ENCAPSULATED_INTERFACE_TRANSPORT,
+        ReadDeviceIdentificationRequest(
+            read_code=DeviceIdentificationReadCode.BASIC,
+            object_id=0,
+        ),
+        bytes.fromhex("2B 0E 01 00"),
+        bytes.fromhex(
+            "2B 0E 01 01 00 00 03 00 07 56 65 6E 64 6F 72 41 01 07 50 72 6F 64 75 63 74 02 05 31 2E 32 2E 33"
+        ),
+        ReadDeviceIdentificationResponse(
+            read_code=DeviceIdentificationReadCode.BASIC,
+            conformity_level=DeviceIdentificationConformityLevel.BASIC,
+            more_follows=False,
+            next_object_id=0,
+            objects=[
+                DeviceIdentificationObject(object_id=0, value=b"VendorA"),
+                DeviceIdentificationObject(object_id=1, value=b"Product"),
+                DeviceIdentificationObject(object_id=2, value=b"1.2.3"),
+            ],
+        ),
+        id="read-device-identification",
+    ),
 ]
 
 
@@ -191,6 +240,46 @@ def test_custom_registry_decodes_registered_request(
     assert request == CustomRequest(value=123)
 
 
+def test_read_device_identification_rejects_bad_mei_type() -> None:
+    with pytest.raises(ValueError, match="MEI type"):
+        ReadDeviceIdentificationRequest(mei_type=0x0D, read_code=1, object_id=0)
+
+
+def test_decode_request_pdu_rejects_malformed_read_device_identification() -> None:
+    with pytest.raises(ValueError, match="payload must be 3 bytes"):
+        decode_request_pdu(bytes.fromhex("2B 0E 01"))
+
+
+def test_read_device_identification_response_rejects_malformed_object_value() -> None:
+    request = ReadDeviceIdentificationRequest(read_code=1, object_id=0)
+
+    with pytest.raises(ValueError, match="incomplete"):
+        decode_response_pdu(
+            data=bytes.fromhex("2B 0E 01 01 00 00 01 00 04 41 42"),
+            request=request,
+        )
+
+
+def test_read_device_identification_response_rejects_extra_bytes() -> None:
+    request = ReadDeviceIdentificationRequest(read_code=1, object_id=0)
+
+    with pytest.raises(ValueError, match="extra bytes"):
+        decode_response_pdu(
+            data=bytes.fromhex("2B 0E 01 01 00 00 00 00"),
+            request=request,
+        )
+
+
+def test_read_device_identification_response_rejects_read_code_mismatch() -> None:
+    request = ReadDeviceIdentificationRequest(read_code=4, object_id=0)
+
+    with pytest.raises(ValueError, match="response code mismatch"):
+        decode_response_pdu(
+            data=bytes.fromhex("2B 0E 01 81 00 00 01 00 06 56 65 6E 64 6F 72"),
+            request=request,
+        )
+
+
 def test_custom_registry_decodes_registered_response_with_request_context(
     function_code_registry: CustomFunctionCodeRegistry,
 ) -> None:
@@ -205,6 +294,44 @@ def test_custom_registry_decodes_registered_response_with_request_context(
     response = decode_response_pdu(data=bytes.fromhex("41 14"), request=request)
 
     assert response == CustomResponse(value=20, request_value=10)
+
+
+def test_custom_registry_decodes_non_device_identification_0x2b_request(
+    function_code_registry: CustomFunctionCodeRegistry,
+) -> None:
+    function_code_registry.register_request_decoder(
+        0x2B,
+        lambda payload: CustomEncapsulatedInterfaceRequest(value=payload[1]),
+    )
+
+    request = decode_request_pdu(bytes.fromhex("2B 0D 7B"))
+
+    assert request == CustomEncapsulatedInterfaceRequest(value=123)
+
+
+def test_custom_registry_decodes_non_device_identification_0x2b_response(
+    function_code_registry: CustomFunctionCodeRegistry,
+) -> None:
+    request = CustomEncapsulatedInterfaceRequest(value=10)
+
+    def decode_custom_response(
+        payload: bytes,
+        request_pdu,
+    ) -> CustomEncapsulatedInterfaceResponse:
+        assert isinstance(request_pdu, CustomEncapsulatedInterfaceRequest)
+        return CustomEncapsulatedInterfaceResponse(
+            value=payload[1],
+            request_value=request_pdu.value,
+        )
+
+    function_code_registry.register_response_decoder(0x2B, decode_custom_response)
+
+    response = decode_response_pdu(data=bytes.fromhex("2B 0D 14"), request=request)
+
+    assert response == CustomEncapsulatedInterfaceResponse(
+        value=20,
+        request_value=10,
+    )
 
 
 def test_custom_registry_preserves_standard_request_dispatch(
