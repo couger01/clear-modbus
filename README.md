@@ -9,7 +9,7 @@ integration testing.
 
 ## Status
 
-This is an early `0.1` release. The core API is usable, but it should still be
+This is an early `0.x` release. The core API is usable, but it should still be
 treated as a young library: expect the public API to tighten as real device
 usage and integration feedback accumulate.
 
@@ -21,6 +21,7 @@ usage and integration feedback accumulate.
 - TCP simulator backed by an in-memory datastore
 - MBAP and RTU frame encoding/decoding
 - Modbus exception response handling
+- Custom function-code decoder registry
 - Function code support for:
   - Read coils (`0x01`)
   - Read discrete inputs (`0x02`)
@@ -34,7 +35,7 @@ usage and integration feedback accumulate.
 
 ## Requirements
 
-- Python 3.12+
+- Python 3.11+
 - `pyserial` for RTU serial transport
 
 ## Installation
@@ -302,4 +303,3 @@ python scripts/smoke_wheel.py
 - Async API only
 - No Modbus ASCII support yet
 - No UDP or TLS transport yet
-- No custom function-code registry yet

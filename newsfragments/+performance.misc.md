@@ -1,1 +1,2 @@
-Improved protocol encoding, decoding, and RTU CRC calculation performance.
+Improved protocol encoding, decoding, bit packing, bit unpacking, and RTU CRC
+calculation performance.

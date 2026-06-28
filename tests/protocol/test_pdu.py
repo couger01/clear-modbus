@@ -254,6 +254,19 @@ def test_pack_bits_uses_lsb_first_bit_order() -> None:
     assert unpack_bits(bytes.fromhex("8D 01"), len(values)) == values
 
 
+@pytest.mark.parametrize(
+    ("data", "count"),
+    [
+        pytest.param(b"", 1, id="partial-byte"),
+        pytest.param(b"", 8, id="exact-byte"),
+        pytest.param(b"\xff", 9, id="after-full-byte"),
+    ],
+)
+def test_unpack_bits_rejects_short_data(data: bytes, count: int) -> None:
+    with pytest.raises(ValueError, match="bit byte count is too short"):
+        unpack_bits(data, count)
+
+
 def test_read_coils_request_encodes_expected_pdu() -> None:
     request = ReadCoilsRequest(address=0, count=10)
 
