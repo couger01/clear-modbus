@@ -5,9 +5,13 @@ from types import TracebackType
 from typing import Self
 
 from clear_modbus import (
+    DeviceIdentificationConformityLevel,
+    DeviceIdentificationObject,
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
+    ReadDeviceIdentificationRequest,
+    ReadDeviceIdentificationResponse,
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
@@ -70,10 +74,14 @@ class ModbusTcpServer:
         host: str = "0.0.0.0",
         port: int = DEFAULT_MODBUS_TCP_PORT,
         datastore: ModbusDataStore | None = None,
+        device_identification: dict[int, bytes | str] | None = None,
     ) -> None:
         self.host = host
         self.port = port
         self.datastore = datastore if datastore is not None else MemoryDataStore()
+        self.device_identification = _normalize_device_identification(
+            device_identification if device_identification is not None else {}
+        )
         self._server: asyncio.Server | None = None
 
     async def __aenter__(self) -> Self:
@@ -242,6 +250,11 @@ class ModbusTcpServer:
                         function_code=request.function_code,
                         values=values,
                     )
+                case ReadDeviceIdentificationRequest():
+                    return _read_device_identification(
+                        request=request,
+                        objects=self.device_identification,
+                    )
                 case _:
                     return ExceptionResponse(
                         function_code=request.function_code,
@@ -266,3 +279,94 @@ def _encode_exception_response(data: bytes, exception_code: ExceptionCode) -> by
         exception_code=exception_code,
     )
     return response.encode()
+
+
+def _normalize_device_identification(
+    objects: dict[int, bytes | str],
+) -> dict[int, bytes]:
+    normalized: dict[int, bytes] = {}
+    for object_id, value in objects.items():
+        if isinstance(value, str):
+            encoded_value = value.encode()
+        else:
+            encoded_value = bytes(value)
+        normalized[object_id] = DeviceIdentificationObject(
+            object_id=object_id,
+            value=encoded_value,
+        ).value
+    return normalized
+
+
+def _read_device_identification(
+    *,
+    request: ReadDeviceIdentificationRequest,
+    objects: dict[int, bytes],
+) -> ReadDeviceIdentificationResponse | ExceptionResponse:
+    if request.read_code == 4 and request.object_id not in objects:
+        return ExceptionResponse(
+            function_code=request.function_code,
+            exception_code=ExceptionCode.ILLEGAL_DATA_ADDRESS,
+        )
+
+    selected = _select_device_identification_objects(
+        read_code=request.read_code,
+        start_object_id=request.object_id,
+        objects=objects,
+    )
+    response_objects, more_follows, next_object_id = _fit_device_identification_objects(
+        selected
+    )
+    return ReadDeviceIdentificationResponse(
+        read_code=request.read_code,
+        conformity_level=_device_identification_conformity_level(objects),
+        more_follows=more_follows,
+        next_object_id=next_object_id,
+        objects=response_objects,
+    )
+
+
+def _select_device_identification_objects(
+    *,
+    read_code: int,
+    start_object_id: int,
+    objects: dict[int, bytes],
+) -> list[DeviceIdentificationObject]:
+    if read_code == 1:
+        allowed_object_ids = range(0x00, 0x03)
+    elif read_code == 2:
+        allowed_object_ids = range(0x00, 0x80)
+    elif read_code == 3:
+        allowed_object_ids = range(0x00, 0x100)
+    else:
+        allowed_object_ids = range(start_object_id, start_object_id + 1)
+
+    return [
+        DeviceIdentificationObject(object_id=object_id, value=objects[object_id])
+        for object_id in sorted(objects)
+        if object_id in allowed_object_ids and object_id >= start_object_id
+    ]
+
+
+def _fit_device_identification_objects(
+    objects: list[DeviceIdentificationObject],
+) -> tuple[list[DeviceIdentificationObject], bool, int]:
+    # Function code plus six-byte MEI response header.
+    remaining = 253 - 7
+    fitted: list[DeviceIdentificationObject] = []
+    for item in objects:
+        item_size = 2 + len(item.value)
+        if item_size > remaining:
+            return fitted, True, item.object_id
+        fitted.append(item)
+        remaining -= item_size
+    return fitted, False, 0
+
+
+def _device_identification_conformity_level(
+    objects: dict[int, bytes],
+) -> int:
+    if any(object_id >= 0x80 for object_id in objects):
+        return DeviceIdentificationConformityLevel.EXTENDED_INDIVIDUAL
+    if any(object_id > 0x02 for object_id in objects):
+        return DeviceIdentificationConformityLevel.REGULAR_INDIVIDUAL
+    return DeviceIdentificationConformityLevel.BASIC_INDIVIDUAL

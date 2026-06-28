@@ -1,6 +1,7 @@
 """Protocol Data Unit types and decoders for supported Modbus functions."""
 
 from dataclasses import dataclass
+from enum import IntEnum
 from struct import pack, unpack, unpack_from
 from typing import ClassVar, Protocol
 
@@ -14,6 +15,8 @@ MAX_READ_WRITE_REGISTERS_WRITE = 121
 MAX_REGISTER_VALUE = 0xFFFF
 MAX_READ_BITS = 2000
 MAX_WRITE_BITS = 1968
+READ_DEVICE_IDENTIFICATION_MEI_TYPE = 0x0E
+MAX_DEVICE_IDENTIFICATION_OBJECT_LENGTH = 244
 COIL_ON = 0xFF00
 COIL_OFF = 0x0000
 _BITS_MASKS = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80)
@@ -23,8 +26,13 @@ _UNPACKED_BITS_BY_BYTE = tuple(
 
 __all__ = [
     "ExceptionResponse",
+    "DeviceIdentificationObject",
+    "DeviceIdentificationReadCode",
+    "DeviceIdentificationConformityLevel",
     "ReadBitsResponse",
     "ReadCoilsRequest",
+    "ReadDeviceIdentificationRequest",
+    "ReadDeviceIdentificationResponse",
     "ReadDiscreteInputsRequest",
     "ReadHoldingRegistersRequest",
     "ReadInputRegistersRequest",
@@ -45,6 +53,8 @@ __all__ = [
     "pack_bits",
     "unpack_bits",
     "validate_bit_count",
+    "validate_device_identification_object_id",
+    "validate_device_identification_object_value",
     "validate_register_address",
     "validate_register_count",
     "validate_register_value",
@@ -125,6 +135,32 @@ def validate_bit_count(count: int, max_count: int = MAX_READ_BITS) -> None:
     """
     if not 1 <= count <= max_count:
         raise ValueError("count is not between 1 and max_count.")
+
+
+def validate_device_identification_object_id(object_id: int) -> None:
+    """Validate a read-device-identification object identifier.
+
+    Raises
+    ------
+    ValueError
+        If ``object_id`` is outside ``0`` through ``0xFF``.
+
+    """
+    if not 0 <= object_id <= 0xFF:
+        raise ValueError("object_id is not between 0 and 0xFF.")
+
+
+def validate_device_identification_object_value(value: bytes) -> None:
+    """Validate a read-device-identification object value.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` is too long for one object field in a Modbus PDU.
+
+    """
+    if len(value) > MAX_DEVICE_IDENTIFICATION_OBJECT_LENGTH:
+        raise ValueError("object value is longer than 244 bytes.")
 
 
 def pack_bits(values: list[bool]) -> bytes:
@@ -822,6 +858,206 @@ class ReadWriteMultipleRegistersRequest:
             validate_register_value(value)
 
 
+class DeviceIdentificationReadCode(IntEnum):
+    """Read device identification access codes."""
+
+    BASIC = 0x01
+    REGULAR = 0x02
+    EXTENDED = 0x03
+    SPECIFIC = 0x04
+
+
+class DeviceIdentificationConformityLevel(IntEnum):
+    """Read device identification conformity levels."""
+
+    BASIC = 0x01
+    REGULAR = 0x02
+    EXTENDED = 0x03
+    BASIC_INDIVIDUAL = 0x81
+    REGULAR_INDIVIDUAL = 0x82
+    EXTENDED_INDIVIDUAL = 0x83
+
+
+@dataclass(frozen=True)
+class DeviceIdentificationObject:
+    """One read-device-identification object."""
+
+    object_id: int
+    value: bytes
+
+    def __post_init__(self) -> None:
+        """Validate object fields."""
+        validate_device_identification_object_id(self.object_id)
+        validate_device_identification_object_value(self.value)
+
+
+@dataclass(frozen=True)
+class ReadDeviceIdentificationRequest:
+    """Read Device Identification request PDU for MEI type ``0x0E``."""
+
+    read_code: int
+    object_id: int = 0
+    mei_type: int = READ_DEVICE_IDENTIFICATION_MEI_TYPE
+
+    function_code: ClassVar[int] = 0x2B
+
+    def encode(self) -> bytes:
+        """Encode the request PDU.
+
+        Returns
+        -------
+        bytes
+            Encoded request PDU.
+
+        """
+        return bytes(
+            [self.function_code, self.mei_type, self.read_code, self.object_id]
+        )
+
+    def __post_init__(self) -> None:
+        """Validate the request fields.
+
+        Raises
+        ------
+        ValueError
+            If any request field is outside the supported range.
+
+        """
+        if self.mei_type != READ_DEVICE_IDENTIFICATION_MEI_TYPE:
+            raise ValueError("MEI type must be 0x0E for Read Device Identification.")
+        try:
+            DeviceIdentificationReadCode(self.read_code)
+        except ValueError as exc:
+            raise ValueError("read_code must be between 0x01 and 0x04.") from exc
+        validate_device_identification_object_id(self.object_id)
+
+
+@dataclass(frozen=True)
+class ReadDeviceIdentificationResponse:
+    """Read Device Identification response PDU for MEI type ``0x0E``."""
+
+    read_code: int
+    conformity_level: int
+    objects: list[DeviceIdentificationObject]
+    more_follows: bool = False
+    next_object_id: int = 0
+    mei_type: int = READ_DEVICE_IDENTIFICATION_MEI_TYPE
+
+    function_code: ClassVar[int] = 0x2B
+
+    def encode(self) -> bytes:
+        """Encode the response PDU.
+
+        Returns
+        -------
+        bytes
+            Encoded response PDU.
+
+        """
+        payload = bytearray(
+            [
+                self.function_code,
+                self.mei_type,
+                self.read_code,
+                self.conformity_level,
+                0xFF if self.more_follows else 0x00,
+                self.next_object_id,
+                len(self.objects),
+            ]
+        )
+        for item in self.objects:
+            payload.extend((item.object_id, len(item.value)))
+            payload.extend(item.value)
+        return bytes(payload)
+
+    def __post_init__(self) -> None:
+        """Validate response fields.
+
+        Raises
+        ------
+        ValueError
+            If any response field is outside the supported range.
+
+        """
+        if self.mei_type != READ_DEVICE_IDENTIFICATION_MEI_TYPE:
+            raise ValueError("MEI type must be 0x0E for Read Device Identification.")
+        try:
+            DeviceIdentificationReadCode(self.read_code)
+        except ValueError as exc:
+            raise ValueError("read_code must be between 0x01 and 0x04.") from exc
+        try:
+            DeviceIdentificationConformityLevel(self.conformity_level)
+        except ValueError as exc:
+            raise ValueError("invalid conformity level.") from exc
+        validate_device_identification_object_id(self.next_object_id)
+        if len(self.objects) > 0xFF:
+            raise ValueError("too many device identification objects.")
+        for item in self.objects:
+            if not isinstance(item, DeviceIdentificationObject):
+                raise ValueError("objects must be DeviceIdentificationObject values.")
+
+    @classmethod
+    def decode(cls, payload: bytes) -> "ReadDeviceIdentificationResponse":
+        """Decode a read-device-identification response payload.
+
+        Parameters
+        ----------
+        payload : bytes
+            Response payload after the function code.
+
+        Returns
+        -------
+        ReadDeviceIdentificationResponse
+            Decoded response.
+
+        Raises
+        ------
+        ValueError
+            If the payload is malformed.
+
+        """
+        if len(payload) < 6:
+            raise ValueError("read device identification response is too short.")
+
+        mei_type, read_code, conformity_level, more_follows, next_object_id, count = (
+            payload[:6]
+        )
+        if mei_type != READ_DEVICE_IDENTIFICATION_MEI_TYPE:
+            raise ValueError("MEI type must be 0x0E for Read Device Identification.")
+        if more_follows not in (0x00, 0xFF):
+            raise ValueError("more_follows must be 0x00 or 0xFF.")
+
+        objects: list[DeviceIdentificationObject] = []
+        offset = 6
+        for _ in range(count):
+            if len(payload) - offset < 2:
+                raise ValueError("device identification object header is incomplete.")
+            object_id = payload[offset]
+            length = payload[offset + 1]
+            offset += 2
+            if len(payload) - offset < length:
+                raise ValueError("device identification object value is incomplete.")
+            objects.append(
+                DeviceIdentificationObject(
+                    object_id=object_id,
+                    value=payload[offset : offset + length],
+                )
+            )
+            offset += length
+
+        if offset != len(payload):
+            raise ValueError("extra bytes after device identification objects.")
+
+        return cls(
+            mei_type=mei_type,
+            read_code=read_code,
+            conformity_level=conformity_level,
+            more_follows=more_follows == 0xFF,
+            next_object_id=next_object_id,
+            objects=objects,
+        )
+
+
 @dataclass(frozen=True)
 class ExceptionResponse:
     """Modbus exception response PDU."""
@@ -918,6 +1154,13 @@ def decode_response_pdu(data: bytes, request: RequestPDU) -> ResponsePDU:
         response = ReadRegistersResponse.decode(function_code, payload)
         if len(response.values) != request.read_count:
             raise ValueError("read register response count does not match request")
+        return response
+    if function_code == FunctionCode.ENCAPSULATED_INTERFACE_TRANSPORT and isinstance(
+        request, ReadDeviceIdentificationRequest
+    ):
+        response = ReadDeviceIdentificationResponse.decode(payload)
+        if response.read_code != request.read_code:
+            raise ValueError("read device identification response code mismatch")
         return response
     if function_code == FunctionCode.WRITE_SINGLE_COIL:
         return WriteSingleCoilResponse.decode(payload)
@@ -1058,11 +1301,23 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
             write_address=write_address,
             values=values,
         )
-    else:
-        custom_request = default_function_code_registry.decode_request(
-            function_code=function_code,
-            payload=payload,
-        )
-        if custom_request is not None:
-            return custom_request
-        raise ModbusPDUError(f"Unsupported function code: {function_code}")
+    if function_code == FunctionCode.ENCAPSULATED_INTERFACE_TRANSPORT:
+        if len(payload) == 3 and payload[0] == READ_DEVICE_IDENTIFICATION_MEI_TYPE:
+            mei_type, read_code, object_id = payload
+            return ReadDeviceIdentificationRequest(
+                mei_type=mei_type,
+                read_code=read_code,
+                object_id=object_id,
+            )
+        if len(payload) > 0 and payload[0] == READ_DEVICE_IDENTIFICATION_MEI_TYPE:
+            raise ValueError(
+                "read device identification request payload must be 3 bytes"
+            )
+
+    custom_request = default_function_code_registry.decode_request(
+        function_code=function_code,
+        payload=payload,
+    )
+    if custom_request is not None:
+        return custom_request
+    raise ModbusPDUError(f"Unsupported function code: {function_code}")

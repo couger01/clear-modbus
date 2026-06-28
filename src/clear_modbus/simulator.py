@@ -115,6 +115,7 @@ class SimulatorProfile:
     input_registers: list[RegisterRange] = field(default_factory=list)
     coils: list[BitRange] = field(default_factory=list)
     discrete_inputs: list[BitRange] = field(default_factory=list)
+    device_identification: dict[int, bytes | str] = field(default_factory=dict)
 
     def to_datastore(self) -> MemoryDataStore:
         """Build a memory datastore from this profile.
@@ -145,8 +146,10 @@ class ModbusSimulator:
         Interface address to bind.
     port : int
         TCP port to bind.
-    datastore : MemoryDataStore | None
+        datastore : MemoryDataStore | None
         Datastore to expose through the simulator.
+    device_identification : dict[int, bytes | str] | None
+        Device-identification objects exposed by function ``0x2B / 0x0E``.
 
     Attributes
     ----------
@@ -171,6 +174,7 @@ class ModbusSimulator:
         host: str = "127.0.0.1",
         port: int = DEFAULT_MODBUS_TCP_PORT,
         datastore: MemoryDataStore | None = None,
+        device_identification: dict[int, bytes | str] | None = None,
     ) -> None:
         self.host = host
         self.port = port
@@ -179,6 +183,7 @@ class ModbusSimulator:
             host=self.host,
             port=self.port,
             datastore=self.datastore,
+            device_identification=device_identification,
         )
         self._task_factories: list[SimulatorTaskFactory] = []
         self._tasks: list[asyncio.Task[None]] = []
@@ -208,7 +213,12 @@ class ModbusSimulator:
             Configured simulator.
 
         """
-        return cls(host=host, port=port, datastore=profile.to_datastore())
+        return cls(
+            host=host,
+            port=port,
+            datastore=profile.to_datastore(),
+            device_identification=profile.device_identification,
+        )
 
     @property
     def bound_port(self) -> int:

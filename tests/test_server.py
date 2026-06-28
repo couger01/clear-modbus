@@ -8,9 +8,12 @@ from clear_modbus.datastore.errors import InvalidValueError
 from clear_modbus.protocol.functions import ExceptionCode
 from clear_modbus.protocol.mbap import ModbusTCPFrame
 from clear_modbus.protocol.pdu import (
+    DeviceIdentificationObject,
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
+    ReadDeviceIdentificationRequest,
+    ReadDeviceIdentificationResponse,
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
@@ -204,6 +207,73 @@ async def test_handle_request_routes_read_write_multiple_registers_to_datastore(
 
 
 @pytest.mark.asyncio
+async def test_handle_request_routes_read_device_identification() -> None:
+    server = ModbusTcpServer(
+        device_identification={
+            0: "Vendor",
+            1: b"Product",
+            2: "1.2.3",
+            3: "https://example.invalid",
+        }
+    )
+
+    response = await server.handle_request(
+        ReadDeviceIdentificationRequest(read_code=2, object_id=1)
+    )
+
+    assert response == ReadDeviceIdentificationResponse(
+        read_code=2,
+        conformity_level=0x82,
+        objects=[
+            DeviceIdentificationObject(object_id=1, value=b"Product"),
+            DeviceIdentificationObject(object_id=2, value=b"1.2.3"),
+            DeviceIdentificationObject(
+                object_id=3,
+                value=b"https://example.invalid",
+            ),
+        ],
+    )
+
+
+@pytest.mark.asyncio
+async def test_handle_request_returns_exception_for_missing_specific_device_id() -> (
+    None
+):
+    server = ModbusTcpServer(device_identification={0: "Vendor"})
+
+    response = await server.handle_request(
+        ReadDeviceIdentificationRequest(read_code=4, object_id=1)
+    )
+
+    assert response == ExceptionResponse(
+        function_code=0x2B,
+        exception_code=ExceptionCode.ILLEGAL_DATA_ADDRESS,
+    )
+
+
+@pytest.mark.asyncio
+async def test_handle_request_returns_individual_conformity_for_specific_device_id() -> (
+    None
+):
+    server = ModbusTcpServer(device_identification={0: "Vendor", 1: "Product"})
+
+    response = await server.handle_request(
+        ReadDeviceIdentificationRequest(read_code=4, object_id=1)
+    )
+
+    assert response == ReadDeviceIdentificationResponse(
+        read_code=4,
+        conformity_level=0x81,
+        objects=[DeviceIdentificationObject(object_id=1, value=b"Product")],
+    )
+
+
+def test_server_rejects_device_identification_object_too_large_for_response() -> None:
+    with pytest.raises(ValueError, match="244 bytes"):
+        ModbusTcpServer(device_identification={0: b"x" * 245})
+
+
+@pytest.mark.asyncio
 async def test_handle_request_does_not_write_read_write_registers_on_bad_read() -> None:
     holding_registers = RegisterBlock(start_address=0, values=[10, 20])
     datastore = MemoryDataStore(holding_registers=[holding_registers])
@@ -338,6 +408,33 @@ async def test_handle_client_writes_exception_frame_for_unsupported_function() -
         pdu=ExceptionResponse(
             function_code=0x11,
             exception_code=ExceptionCode.ILLEGAL_FUNCTION,
+        ).encode(),
+    ).encode()
+    assert bytes(writer.data) == expected_frame
+    assert writer.closed is True
+
+
+@pytest.mark.asyncio
+async def test_handle_client_writes_data_value_exception_for_malformed_device_id() -> (
+    None
+):
+    server = ModbusTcpServer()
+    request_frame = ModbusTCPFrame(
+        transaction_id=123,
+        unit_id=7,
+        pdu=bytes.fromhex("2B 0E 01"),
+    ).encode()
+    reader = FakeStreamReader(chunks=[request_frame[:7], request_frame[7:]])
+    writer = FakeStreamWriter()
+
+    await server._handle_client(reader, writer)
+
+    expected_frame = ModbusTCPFrame(
+        transaction_id=123,
+        unit_id=7,
+        pdu=ExceptionResponse(
+            function_code=0x2B,
+            exception_code=ExceptionCode.ILLEGAL_DATA_VALUE,
         ).encode(),
     ).encode()
     assert bytes(writer.data) == expected_frame

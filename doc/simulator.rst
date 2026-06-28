@@ -32,9 +32,17 @@ areas:
            discrete_inputs=[
                BitRange(start_address=100, values=[False, True], readonly=True),
            ],
+           device_identification={
+               0: "Example Vendor",
+               1: "Example Product",
+               2: "1.0.0",
+           },
        ),
        port=0,
    )
+
+The ``device_identification`` mapping configures objects returned by Read
+Device Identification requests. Object values may be ``bytes`` or strings.
 
 Use ``port=0`` when tests need the operating system to choose an available TCP
 port. After the simulator starts, ``bound_port`` returns the actual port:

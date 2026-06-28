@@ -7,9 +7,14 @@ package ``clear_modbus``.
 from clear_modbus.client import ModbusTcpClient
 from clear_modbus.exceptions import ModbusExceptionResponseError
 from clear_modbus.protocol.pdu import (
+    DeviceIdentificationConformityLevel,
+    DeviceIdentificationObject,
+    DeviceIdentificationReadCode,
     ExceptionResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
+    ReadDeviceIdentificationRequest,
+    ReadDeviceIdentificationResponse,
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
     ReadInputRegistersRequest,
@@ -43,6 +48,9 @@ from clear_modbus.simulator import (
 __all__ = [
     "BitRange",
     "CustomFunctionCodeRegistry",
+    "DeviceIdentificationConformityLevel",
+    "DeviceIdentificationObject",
+    "DeviceIdentificationReadCode",
     "ExceptionResponse",
     "ModbusExceptionResponseError",
     "ModbusRtuClient",
@@ -50,6 +58,8 @@ __all__ = [
     "ModbusTcpClient",
     "ReadBitsResponse",
     "ReadCoilsRequest",
+    "ReadDeviceIdentificationRequest",
+    "ReadDeviceIdentificationResponse",
     "RequestDecoder",
     "ResponseDecoder",
     "ReadDiscreteInputsRequest",
