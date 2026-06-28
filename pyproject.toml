@@ -52,6 +52,9 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [dependency-groups]
+bench = [
+    "pyperf>=2.9.0",
+]
 test = [
     "pytest>=9.0.3",
     "pytest-asyncio>=1.3.0",
@@ -70,6 +73,7 @@ pre-commit = [
     "towncrier>=25.8.0",
 ]
 dev = [
+    { include-group = "bench" },
     { include-group = "test" },
     { include-group = "docs" },
     { include-group = "nox" },

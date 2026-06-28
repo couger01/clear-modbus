@@ -18,6 +18,12 @@ def tests(session: Session) -> None:
     session.run("pytest", *session.posargs)
 
 
+@session(python=PYTHON_VERSIONS[-1], uv_groups=["bench"])
+def benchmarks(session: Session) -> None:
+    """Run protocol microbenchmarks."""
+    session.run("python", "benchmarks/protocol.py", *session.posargs)
+
+
 @session(python=PYTHON_VERSIONS[-1], uv_groups=["docs"])
 def docs(session: Session) -> None:
     """Build the Sphinx documentation."""
