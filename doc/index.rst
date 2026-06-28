@@ -27,4 +27,5 @@ simulator for tests and local development.
    :caption: Reference
 
    api
+   releasing
    release-notes

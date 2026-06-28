@@ -1,0 +1,54 @@
+name: Benchmarks
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * 0"
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  benchmarks:
+    name: Pyperf benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install dependencies
+        run: uv sync --group bench --locked
+
+      - name: Create benchmark results directory
+        run: mkdir -p benchmark-results
+
+      - name: Run protocol benchmarks
+        run: uv run python benchmarks/protocol.py --output benchmark-results/protocol.json
+
+      - name: Run datastore benchmarks
+        run: uv run python benchmarks/datastore.py --output benchmark-results/datastore.json
+
+      - name: Run server benchmarks
+        run: uv run python benchmarks/server.py --output benchmark-results/server.json
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyperf-results
+          path: benchmark-results/*.json
+          retention-days: 90

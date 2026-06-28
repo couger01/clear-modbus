@@ -1,0 +1,60 @@
+name: Release
+
+"on":
+  workflow_run:
+    workflows:
+      - Build Package
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  github-release:
+    name: Create GitHub release
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Download package artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "${{ github.event.workflow_run.id }}" --pattern "python-package-*" --dir release-artifacts
+
+      - name: Prepare release metadata
+        id: metadata
+        run: |
+          mkdir -p dist
+          cp release-artifacts/python-package-*/* dist/
+
+          tag="$(cat dist/release-tag.txt)"
+          case "$tag" in
+            v*) ;;
+            *)
+              echo "Release tag must start with v: $tag" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract release notes
+        run: python scripts/extract_release_notes.py "${{ steps.metadata.outputs.version }}" RELEASE_NOTES.md
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.metadata.outputs.tag }}
+          body_path: RELEASE_NOTES.md
+          files: |
+            dist/*.tar.gz
+            dist/*.whl
+          fail_on_unmatched_files: true
