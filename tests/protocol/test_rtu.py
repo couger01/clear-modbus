@@ -6,6 +6,7 @@ from clear_modbus.exceptions import (
     ModbusResponseMismatchError,
 )
 from clear_modbus.protocol.pdu import (
+    MaskWriteRegisterRequest,
     ReadCoilsRequest,
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
@@ -19,6 +20,7 @@ from clear_modbus.protocol.pdu import (
 )
 from clear_modbus.protocol.rtu import (
     RTU_EXCEPTION_RESPONSE_SIZE,
+    RTU_MASK_WRITE_REGISTER_RESPONSE_SIZE,
     RTU_RESPONSE_PREFIX_SIZE,
     RTU_WRITE_REGISTER_RESPONSE_SIZE,
     ModbusRTUCodec,
@@ -188,6 +190,12 @@ def test_fixed_rtu_response_size_returns_write_echo_size(request_pdu) -> None:
     assert fixed_rtu_response_size(request_pdu) == RTU_WRITE_REGISTER_RESPONSE_SIZE
 
 
+def test_fixed_rtu_response_size_returns_mask_write_echo_size() -> None:
+    request = MaskWriteRegisterRequest(address=4, and_mask=0x00F2, or_mask=0x0025)
+
+    assert fixed_rtu_response_size(request) == RTU_MASK_WRITE_REGISTER_RESPONSE_SIZE
+
+
 @pytest.mark.parametrize(
     "request_pdu",
     [
@@ -224,6 +232,15 @@ def test_rtu_response_size_from_prefix_returns_fixed_write_size() -> None:
     assert (
         rtu_response_size_from_prefix(bytes.fromhex("01 06"), request)
         == RTU_WRITE_REGISTER_RESPONSE_SIZE
+    )
+
+
+def test_rtu_response_size_from_prefix_returns_fixed_mask_write_size() -> None:
+    request = MaskWriteRegisterRequest(address=4, and_mask=0x00F2, or_mask=0x0025)
+
+    assert (
+        rtu_response_size_from_prefix(bytes.fromhex("01 16"), request)
+        == RTU_MASK_WRITE_REGISTER_RESPONSE_SIZE
     )
 
 

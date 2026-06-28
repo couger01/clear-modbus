@@ -9,6 +9,7 @@ from clear_modbus.exceptions import (
 )
 from clear_modbus.protocol.functions import is_exception_function_code
 from clear_modbus.protocol.pdu import (
+    MaskWriteRegisterRequest,
     ReadCoilsRequest,
     ReadDiscreteInputsRequest,
     ReadHoldingRegistersRequest,
@@ -27,6 +28,7 @@ MIN_RTU_FRAME_SIZE = 4
 RTU_RESPONSE_PREFIX_SIZE = 2
 RTU_EXCEPTION_RESPONSE_SIZE = 5
 RTU_WRITE_REGISTER_RESPONSE_SIZE = 8
+RTU_MASK_WRITE_REGISTER_RESPONSE_SIZE = 10
 
 
 def _crc16_table_entry(value: int) -> int:
@@ -43,6 +45,7 @@ CRC16_MODBUS_TABLE = tuple(_crc16_table_entry(value) for value in range(256))
 __all__ = [
     "ModbusRTUCodec",
     "ModbusRTUFrame",
+    "RTU_MASK_WRITE_REGISTER_RESPONSE_SIZE",
     "crc16_modbus",
     "decode_rtu_frame",
     "encode_rtu_frame",
@@ -265,6 +268,8 @@ def fixed_rtu_response_size(request: RequestPDU) -> int | None:
         ),
     ):
         return RTU_WRITE_REGISTER_RESPONSE_SIZE
+    if isinstance(request, MaskWriteRegisterRequest):
+        return RTU_MASK_WRITE_REGISTER_RESPONSE_SIZE
     if isinstance(
         request,
         (

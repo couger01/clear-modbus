@@ -10,6 +10,8 @@ from clear_modbus.protocol.codec import ModbusTCPCodec
 from clear_modbus.protocol.pdu import (
     DeviceIdentificationObject,
     ExceptionResponse,
+    MaskWriteRegisterRequest,
+    MaskWriteRegisterResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
     ReadDeviceIdentificationRequest,
@@ -448,6 +450,89 @@ async def test_read_write_multiple_registers_builds_request_and_returns_read_res
     assert captured["request"].values == [10, 20]
     assert captured["unit_id"] == 7
     assert response == ReadRegistersResponse(function_code=0x17, values=[55, 66])
+
+
+@pytest.mark.asyncio
+async def test_mask_write_register_verifies_echoed_fields() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+    captured: dict[str, object] = {}
+
+    async def fake_execute(request, unit_id=None):
+        captured["request"] = request
+        captured["unit_id"] = unit_id
+        return MaskWriteRegisterResponse(
+            function_code=0x16,
+            address=4,
+            and_mask=0x00F2,
+            or_mask=0x0025,
+        )
+
+    client.execute = fake_execute
+
+    response = await client.mask_write_register(
+        address=4,
+        and_mask=0x00F2,
+        or_mask=0x0025,
+        unit_id=7,
+    )
+
+    assert isinstance(captured["request"], MaskWriteRegisterRequest)
+    assert captured["request"].address == 4
+    assert captured["request"].and_mask == 0x00F2
+    assert captured["request"].or_mask == 0x0025
+    assert captured["unit_id"] == 7
+    assert response == MaskWriteRegisterResponse(
+        function_code=0x16,
+        address=4,
+        and_mask=0x00F2,
+        or_mask=0x0025,
+    )
+
+
+@pytest.mark.asyncio
+async def test_mask_write_register_raises_for_exception_response() -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+
+    async def fake_execute(request, unit_id=None):
+        return ExceptionResponse(function_code=0x16, exception_code=0x03)
+
+    client.execute = fake_execute
+
+    with pytest.raises(ModbusExceptionResponseError) as exc_info:
+        await client.mask_write_register(address=4, and_mask=0x00F2, or_mask=0x0025)
+
+    assert exc_info.value.function_code == 0x16
+    assert exc_info.value.exception_code == 0x03
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("response_address", "response_and_mask", "response_or_mask"),
+    [
+        (5, 0x00F2, 0x0025),
+        (4, 0x00F3, 0x0025),
+        (4, 0x00F2, 0x0026),
+    ],
+)
+async def test_mask_write_register_rejects_mismatched_echo(
+    response_address: int,
+    response_and_mask: int,
+    response_or_mask: int,
+) -> None:
+    client = ModbusTcpClient(host="127.0.0.1")
+
+    async def fake_execute(request, unit_id=None):
+        return MaskWriteRegisterResponse(
+            function_code=0x16,
+            address=response_address,
+            and_mask=response_and_mask,
+            or_mask=response_or_mask,
+        )
+
+    client.execute = fake_execute
+
+    with pytest.raises(ModbusResponseMismatchError):
+        await client.mask_write_register(address=4, and_mask=0x00F2, or_mask=0x0025)
 
 
 @pytest.mark.asyncio

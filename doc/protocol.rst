@@ -20,6 +20,7 @@ Write single coil          0x05   ``WriteSingleCoilRequest``             ``Write
 Write single register      0x06   ``WriteSingleRegisterRequest``         ``WriteSingleRegisterResponse``
 Write multiple coils       0x0F   ``WriteMultipleCoilsRequest``          ``WriteMultipleCoilsResponse``
 Write multiple registers   0x10   ``WriteMultipleRegistersRequest``      ``WriteMultipleRegistersResponse``
+Mask write register        0x16   ``MaskWriteRegisterRequest``           ``MaskWriteRegisterResponse``
 Read/write multiple regs   0x17   ``ReadWriteMultipleRegistersRequest``  ``ReadRegistersResponse``
 Read device identification 0x2B   ``ReadDeviceIdentificationRequest``    ``ReadDeviceIdentificationResponse``
 ========================== ====== ====================================== =====================================

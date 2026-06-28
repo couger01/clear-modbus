@@ -9,6 +9,8 @@ from clear_modbus import (
     DeviceIdentificationObject,
     DeviceIdentificationReadCode,
     ExceptionResponse,
+    MaskWriteRegisterRequest,
+    MaskWriteRegisterResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
     ReadDeviceIdentificationRequest,
@@ -163,6 +165,23 @@ INTEROPERABILITY_PDU_CASES = [
         bytes.fromhex("10 00 00 00 02"),
         WriteMultipleRegistersResponse(function_code=0x10, address=0, count=2),
         id="write-multiple-registers",
+    ),
+    pytest.param(
+        FunctionCode.MASK_WRITE_REGISTER,
+        MaskWriteRegisterRequest(
+            address=0x0004,
+            and_mask=0x00F2,
+            or_mask=0x0025,
+        ),
+        bytes.fromhex("16 00 04 00 F2 00 25"),
+        bytes.fromhex("16 00 04 00 F2 00 25"),
+        MaskWriteRegisterResponse(
+            function_code=0x16,
+            address=0x0004,
+            and_mask=0x00F2,
+            or_mask=0x0025,
+        ),
+        id="mask-write-register",
     ),
     pytest.param(
         FunctionCode.READ_WRITE_MULTIPLE_REGISTERS,
@@ -526,6 +545,40 @@ def test_write_multiple_registers_response_decodes_echo_payload() -> None:
     assert response.count == 2
 
 
+def test_mask_write_register_request_encodes_expected_pdu() -> None:
+    request = MaskWriteRegisterRequest(
+        address=0x0004,
+        and_mask=0x00F2,
+        or_mask=0x0025,
+    )
+
+    assert request.encode() == bytes.fromhex("16 00 04 00 F2 00 25")
+
+
+def test_mask_write_register_request_validates_masks() -> None:
+    with pytest.raises(ValueError, match="0xFFFF"):
+        MaskWriteRegisterRequest(address=0, and_mask=0x1_0000, or_mask=0)
+
+    with pytest.raises(ValueError, match="0xFFFF"):
+        MaskWriteRegisterRequest(address=0, and_mask=0, or_mask=0x1_0000)
+
+
+def test_mask_write_register_response_decodes_echo_payload() -> None:
+    response = MaskWriteRegisterResponse.decode(bytes.fromhex("00 04 00 F2 00 25"))
+
+    assert response == MaskWriteRegisterResponse(
+        function_code=0x16,
+        address=0x0004,
+        and_mask=0x00F2,
+        or_mask=0x0025,
+    )
+
+
+def test_mask_write_register_response_rejects_bad_payload_length() -> None:
+    with pytest.raises(ValueError):
+        MaskWriteRegisterResponse.decode(bytes.fromhex("00 04 00 F2"))
+
+
 def test_exception_response_decodes_and_strips_exception_bit() -> None:
     response = ExceptionResponse.decode(function_code=0x83, payload=bytes.fromhex("02"))
     assert response.function_code == 0x03
@@ -617,6 +670,16 @@ def test_decode_request_pdu_decodes_write_multiple_registers_request() -> None:
     assert request == WriteMultipleRegistersRequest(address=0, values=[10, 20])
 
 
+def test_decode_request_pdu_decodes_mask_write_register_request() -> None:
+    request = decode_request_pdu(bytes.fromhex("16 00 04 00 F2 00 25"))
+
+    assert request == MaskWriteRegisterRequest(
+        address=0x0004,
+        and_mask=0x00F2,
+        or_mask=0x0025,
+    )
+
+
 def test_decode_request_pdu_decodes_read_write_multiple_registers_request() -> None:
     request = decode_request_pdu(
         bytes.fromhex("17 00 00 00 02 00 02 00 02 04 00 0A 00 14")
@@ -647,6 +710,11 @@ def test_decode_request_pdu_rejects_empty_data() -> None:
 def test_decode_request_pdu_rejects_bad_payload_length() -> None:
     with pytest.raises(ValueError):
         decode_request_pdu(bytes.fromhex("03 00 00 00"))
+
+
+def test_decode_request_pdu_rejects_bad_mask_write_register_payload_length() -> None:
+    with pytest.raises(ValueError, match="6 bytes"):
+        decode_request_pdu(bytes.fromhex("16 00 04 00 F2"))
 
 
 def test_decode_request_pdu_rejects_bad_write_multiple_byte_count() -> None:
