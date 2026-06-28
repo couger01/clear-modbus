@@ -60,9 +60,15 @@ Memory Datastore
 * ``coils`` for read/write bit data.
 * ``discrete_inputs`` for read-only bit-style data.
 
-The datastore rejects overlapping blocks inside the same data area. For a read
-or write, one block must contain the full requested range. Requests do not span
-multiple blocks, even when adjacent blocks together cover the full range.
+The datastore sorts each data area by block start address during construction
+and stores the block collections as immutable tuples. Add, remove, or reorder
+blocks by constructing a new datastore. Block values remain mutable through the
+datastore write methods and the block ``write`` methods.
+
+The datastore rejects overlapping non-empty blocks inside the same data area.
+For a read or write, one block must contain the full requested range. Requests
+do not span multiple blocks, even when adjacent blocks together cover the full
+range.
 
 .. code-block:: python
 
@@ -85,6 +91,8 @@ multiple blocks, even when adjacent blocks together cover the full range.
 
    assert datastore.get_holding_registers(address=0, count=2) == [10, 20]
    datastore.set_holding_registers(address=0, values=[11, 22])
+
+   assert isinstance(datastore.holding_registers, tuple)
 
 Errors
 ------

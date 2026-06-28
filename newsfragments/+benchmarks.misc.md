@@ -1,1 +1,1 @@
-Added pyperf protocol microbenchmarks and a nox benchmark session.
+Added pyperf protocol, datastore, and server microbenchmarks and a nox benchmark session.

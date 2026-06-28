@@ -1,7 +1,8 @@
 """Contiguous datastore blocks for register and bit data areas."""
 
-from collections.abc import Sequence
+from collections.abc import Sequence, Sized
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from clear_modbus.datastore.errors import (
     InvalidAddressError,
@@ -9,7 +10,25 @@ from clear_modbus.datastore.errors import (
     ReadOnlyDataBlockError,
 )
 
-__all__ = ["BitBlock", "RegisterBlock"]
+__all__ = ["BitBlock", "DataBlock", "RegisterBlock"]
+
+
+class DataBlock(Protocol):
+    """Shared interface for datastore blocks."""
+
+    @property
+    def start_address(self) -> int:
+        """Return the first address covered by the block."""
+        ...
+
+    @property
+    def values(self) -> Sized:
+        """Return the block values."""
+        ...
+
+    def contains(self, address: int, count: int = 1) -> bool:
+        """Return whether the full address range is inside the block."""
+        ...
 
 
 @dataclass
