@@ -16,6 +16,10 @@ MAX_READ_BITS = 2000
 MAX_WRITE_BITS = 1968
 COIL_ON = 0xFF00
 COIL_OFF = 0x0000
+_BITS_MASKS = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80)
+_UNPACKED_BITS_BY_BYTE = tuple(
+    tuple(bool(byte & mask) for mask in _BITS_MASKS) for byte in range(256)
+)
 
 __all__ = [
     "ExceptionResponse",
@@ -138,9 +142,17 @@ def pack_bits(values: list[bool]) -> bytes:
 
     """
     payload = bytearray((len(values) + 7) // 8)
-    for index, value in enumerate(values):
-        if value:
-            payload[index // 8] |= 1 << (index % 8)
+    for byte_index in range(len(payload)):
+        base = byte_index * 8
+        end = min(base + 8, len(values))
+        byte = 0
+
+        for value_index in range(base, end):
+            if values[value_index]:
+                byte |= _BITS_MASKS[value_index - base]
+
+        payload[byte_index] = byte
+
     return bytes(payload)
 
 
@@ -159,10 +171,24 @@ def unpack_bits(data: bytes, count: int) -> list[bool]:
     list[bool]
         Unpacked values.
 
+    Raises
+    ------
+    ValueError
+        If ``data`` does not contain enough bytes for ``count`` bits.
+
     """
-    values: list[bool] = []
-    for index in range(count):
-        values.append(bool(data[index // 8] & (1 << (index % 8))))
+    required_bytes = (count + 7) // 8
+    if len(data) < required_bytes:
+        raise ValueError("bit byte count is too short for requested count.")
+
+    full_bytes, remaining_bits = divmod(count, 8)
+
+    values: list[bool] = [
+        bit for byte in data[:full_bytes] for bit in _UNPACKED_BITS_BY_BYTE[byte]
+    ]
+    if remaining_bits:
+        values.extend(_UNPACKED_BITS_BY_BYTE[data[full_bytes]][:remaining_bits])
+
     return values
 
 
