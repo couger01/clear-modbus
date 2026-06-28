@@ -8,10 +8,45 @@ from clear_modbus.datastore.memory import MemoryDataStore
 def test_memory_datastore_initializes_empty_blocks_by_default() -> None:
     datastore = MemoryDataStore()
 
-    assert datastore.holding_registers == []
-    assert datastore.input_registers == []
-    assert datastore.coils == []
-    assert datastore.discrete_inputs == []
+    assert datastore.holding_registers == ()
+    assert datastore.input_registers == ()
+    assert datastore.coils == ()
+    assert datastore.discrete_inputs == ()
+
+
+def test_memory_datastore_stores_block_collections_as_tuples() -> None:
+    datastore = MemoryDataStore(
+        holding_registers=[RegisterBlock(start_address=0, values=[1])],
+        input_registers=[RegisterBlock(start_address=10, values=[2])],
+        coils=[BitBlock(start_address=20, values=[True])],
+        discrete_inputs=[BitBlock(start_address=30, values=[False])],
+    )
+
+    assert isinstance(datastore.holding_registers, tuple)
+    assert isinstance(datastore.input_registers, tuple)
+    assert isinstance(datastore.coils, tuple)
+    assert isinstance(datastore.discrete_inputs, tuple)
+
+
+def test_memory_datastore_sorts_block_collections_at_construction() -> None:
+    datastore = MemoryDataStore(
+        holding_registers=[
+            RegisterBlock(start_address=100, values=[2]),
+            RegisterBlock(start_address=0, values=[1]),
+        ]
+    )
+
+    assert [block.start_address for block in datastore.holding_registers] == [0, 100]
+
+
+def test_memory_datastore_keeps_block_values_mutable() -> None:
+    block = RegisterBlock(start_address=0, values=[1, 2])
+    datastore = MemoryDataStore(holding_registers=[block])
+
+    datastore.set_holding_registers(1, [3])
+
+    assert block.values == [1, 3]
+    assert datastore.get_holding_registers(0, 2) == [1, 3]
 
 
 def test_memory_datastore_rejects_overlapping_register_blocks() -> None:
@@ -137,3 +172,14 @@ def test_memory_datastore_raises_for_unmapped_range(
 
     with pytest.raises(InvalidAddressError):
         method(*args)
+
+
+def test_memory_datastore_ignores_empty_blocks_during_lookup() -> None:
+    datastore = MemoryDataStore(
+        holding_registers=[
+            RegisterBlock(start_address=0, values=[1, 2]),
+            RegisterBlock(start_address=1, values=[]),
+        ]
+    )
+
+    assert datastore.get_holding_registers(1, 1) == [2]

@@ -316,8 +316,9 @@ class ModbusSimulator:
 
     def set_input_registers(self, address: int, values: list[int]) -> None:
         """Write input-register values in the simulator datastore."""
-        block = self.datastore._find_register_block(
-            self.datastore.input_registers,
+        block = self.datastore._find_block(
+            self.datastore._input_register_blocks,
+            self.datastore._input_register_starts,
             address,
             len(values),
         )
@@ -365,8 +366,9 @@ class ModbusSimulator:
 
     def set_discrete_inputs(self, address: int, values: list[bool]) -> None:
         """Write discrete-input values in the simulator datastore."""
-        block = self.datastore._find_bit_block(
-            self.datastore.discrete_inputs,
+        block = self.datastore._find_block(
+            self.datastore._discrete_inputs_blocks,
+            self.datastore._discrete_inputs_starts,
             address,
             len(values),
         )

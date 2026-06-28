@@ -20,8 +20,10 @@ def tests(session: Session) -> None:
 
 @session(python=PYTHON_VERSIONS[-1], uv_groups=["bench"])
 def benchmarks(session: Session) -> None:
-    """Run protocol microbenchmarks."""
+    """Run microbenchmarks."""
     session.run("python", "benchmarks/protocol.py", *session.posargs)
+    session.run("python", "benchmarks/datastore.py", *session.posargs)
+    session.run("python", "benchmarks/server.py", *session.posargs)
 
 
 @session(python=PYTHON_VERSIONS[-1], uv_groups=["docs"])
