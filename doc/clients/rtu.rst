@@ -50,6 +50,11 @@ Write operations use the same high-level method names as the TCP client:
        write_address=20,
        values=[100, 200],
    )
+   masked_register = await client.mask_write_register(
+       address=30,
+       and_mask=0x00F2,
+       or_mask=0x0025,
+   )
    single_coil = await client.write_single_coil(address=0, value=True)
    multiple_coils = await client.write_multiple_coils(
        address=1,

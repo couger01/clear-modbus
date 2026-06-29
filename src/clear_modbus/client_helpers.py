@@ -6,6 +6,8 @@ from clear_modbus.exceptions import (
 )
 from clear_modbus.protocol.pdu import (
     ExceptionResponse,
+    MaskWriteRegisterRequest,
+    MaskWriteRegisterResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
     ReadDeviceIdentificationRequest,
@@ -394,6 +396,60 @@ class ModbusClientOperations:
         raise_for_exception_response(response)
         if not isinstance(response, ReadRegistersResponse):
             raise ModbusResponseMismatchError("Expected ReadRegistersResponse.")
+        return response
+
+    async def mask_write_register(
+        self,
+        address: int,
+        and_mask: int,
+        or_mask: int,
+        unit_id: int | None = None,
+    ) -> MaskWriteRegisterResponse:
+        """Mask write one holding-register value.
+
+        Parameters
+        ----------
+        address : int
+            Holding-register address to write.
+        and_mask : int
+            AND mask applied to the current register value.
+        or_mask : int
+            OR mask applied after masking against ``and_mask``.
+        unit_id : int | None
+            Unit identifier override.
+
+        Returns
+        -------
+        MaskWriteRegisterResponse
+            Decoded mask-write echo response.
+
+        Raises
+        ------
+        ModbusResponseMismatchError
+            If the decoded response type or echoed fields are invalid.
+
+        """
+        request = MaskWriteRegisterRequest(
+            address=address,
+            and_mask=and_mask,
+            or_mask=or_mask,
+        )
+        response = await self.execute(request, unit_id=unit_id)
+        raise_for_exception_response(response)
+        if not isinstance(response, MaskWriteRegisterResponse):
+            raise ModbusResponseMismatchError("Expected MaskWriteRegisterResponse.")
+        if response.address != address:
+            raise ModbusResponseMismatchError(
+                "Response address does not match expected address."
+            )
+        if response.and_mask != and_mask:
+            raise ModbusResponseMismatchError(
+                "Response AND mask does not match expected AND mask."
+            )
+        if response.or_mask != or_mask:
+            raise ModbusResponseMismatchError(
+                "Response OR mask does not match expected OR mask."
+            )
         return response
 
     async def read_device_identification(

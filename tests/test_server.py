@@ -10,6 +10,8 @@ from clear_modbus.protocol.mbap import ModbusTCPFrame
 from clear_modbus.protocol.pdu import (
     DeviceIdentificationObject,
     ExceptionResponse,
+    MaskWriteRegisterRequest,
+    MaskWriteRegisterResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
     ReadDeviceIdentificationRequest,
@@ -204,6 +206,29 @@ async def test_handle_request_routes_read_write_multiple_registers_to_datastore(
 
     assert response == ReadRegistersResponse(function_code=0x17, values=[10, 55, 66])
     assert holding_registers.values == [10, 55, 66, 40]
+
+
+@pytest.mark.asyncio
+async def test_handle_request_routes_mask_write_register_to_datastore() -> None:
+    holding_registers = RegisterBlock(start_address=0, values=[0x0012])
+    datastore = MemoryDataStore(holding_registers=[holding_registers])
+    server = ModbusTcpServer(datastore=datastore)
+
+    response = await server.handle_request(
+        MaskWriteRegisterRequest(
+            address=0,
+            and_mask=0x00F2,
+            or_mask=0x0025,
+        )
+    )
+
+    assert response == MaskWriteRegisterResponse(
+        function_code=0x16,
+        address=0,
+        and_mask=0x00F2,
+        or_mask=0x0025,
+    )
+    assert holding_registers.values == [0x0017]
 
 
 @pytest.mark.asyncio

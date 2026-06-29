@@ -8,6 +8,8 @@ from clear_modbus import (
     DeviceIdentificationConformityLevel,
     DeviceIdentificationObject,
     ExceptionResponse,
+    MaskWriteRegisterRequest,
+    MaskWriteRegisterResponse,
     ReadBitsResponse,
     ReadCoilsRequest,
     ReadDeviceIdentificationRequest,
@@ -234,6 +236,20 @@ class ModbusTcpServer:
                         function_code=request.function_code,
                         address=address,
                         count=len(values),
+                    )
+                case MaskWriteRegisterRequest(
+                    address=address,
+                    and_mask=and_mask,
+                    or_mask=or_mask,
+                ):
+                    value = self.datastore.get_holding_registers(address, 1)[0]
+                    masked_value = (value & and_mask) | (or_mask & (~and_mask & 0xFFFF))
+                    self.datastore.set_holding_registers(address, [masked_value])
+                    return MaskWriteRegisterResponse(
+                        function_code=request.function_code,
+                        address=address,
+                        and_mask=and_mask,
+                        or_mask=or_mask,
                     )
                 case ReadWriteMultipleRegistersRequest(
                     read_address=read_address,

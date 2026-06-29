@@ -40,6 +40,8 @@ __all__ = [
     "ReadWriteMultipleRegistersRequest",
     "RequestPDU",
     "ResponsePDU",
+    "MaskWriteRegisterRequest",
+    "MaskWriteRegisterResponse",
     "WriteMultipleCoilsRequest",
     "WriteMultipleCoilsResponse",
     "WriteMultipleRegistersRequest",
@@ -817,6 +819,97 @@ class WriteMultipleCoilsResponse:
 
 
 @dataclass(frozen=True)
+class MaskWriteRegisterRequest:
+    """Mask write register request PDU."""
+
+    address: int
+    and_mask: int
+    or_mask: int
+
+    function_code: ClassVar[int] = 0x16
+
+    def encode(self) -> bytes:
+        """Encode the request PDU.
+
+        Returns
+        -------
+        bytes
+            Encoded request PDU.
+
+        """
+        return pack(
+            ">BHHH",
+            self.function_code,
+            self.address,
+            self.and_mask,
+            self.or_mask,
+        )
+
+    def __post_init__(self) -> None:
+        """Validate the request fields."""
+        validate_register_address(self.address)
+        validate_register_value(self.and_mask)
+        validate_register_value(self.or_mask)
+
+
+@dataclass(frozen=True)
+class MaskWriteRegisterResponse:
+    """Mask write register response PDU."""
+
+    function_code: int
+    address: int
+    and_mask: int
+    or_mask: int
+
+    def encode(self) -> bytes:
+        """Encode the response PDU.
+
+        Returns
+        -------
+        bytes
+            Encoded response PDU.
+
+        """
+        return pack(
+            ">BHHH",
+            self.function_code,
+            self.address,
+            self.and_mask,
+            self.or_mask,
+        )
+
+    @classmethod
+    def decode(cls, payload: bytes) -> "MaskWriteRegisterResponse":
+        """Decode a mask-write-register response payload.
+
+        Parameters
+        ----------
+        payload : bytes
+            Response payload after the function code.
+
+        Returns
+        -------
+        MaskWriteRegisterResponse
+            Decoded response.
+
+        Raises
+        ------
+        ValueError
+            If ``payload`` is not exactly six bytes.
+
+        """
+        if len(payload) != 6:
+            raise ValueError()
+        address, and_mask, or_mask = unpack(">HHH", payload)
+        return cls(
+            function_code=0x16,
+            address=address,
+            and_mask=and_mask,
+            or_mask=or_mask,
+        )
+
+
+@dataclass(frozen=True)
 class ReadWriteMultipleRegistersRequest:
     """Read/write multiple registers request PDU."""
 
@@ -1170,6 +1263,8 @@ def decode_response_pdu(data: bytes, request: RequestPDU) -> ResponsePDU:
         return WriteMultipleCoilsResponse.decode(payload)
     if function_code == FunctionCode.WRITE_MULTIPLE_REGISTERS:
         return WriteMultipleRegistersResponse.decode(payload)
+    if function_code == FunctionCode.MASK_WRITE_REGISTER:
+        return MaskWriteRegisterResponse.decode(payload)
     else:
         custom_response = default_function_code_registry.decode_response(
             function_code=function_code,
@@ -1274,6 +1369,16 @@ def decode_request_pdu(data: bytes) -> RequestPDU:
 
         values = list(unpack(f">{byte_count // 2}H", register_bytes))
         return WriteMultipleRegistersRequest(address=address, values=values)
+
+    if function_code == FunctionCode.MASK_WRITE_REGISTER:
+        if len(payload) != 6:
+            raise ValueError("mask write register request payload must be 6 bytes")
+        address, and_mask, or_mask = unpack(">HHH", payload)
+        return MaskWriteRegisterRequest(
+            address=address,
+            and_mask=and_mask,
+            or_mask=or_mask,
+        )
 
     if function_code == FunctionCode.READ_WRITE_MULTIPLE_REGISTERS:
         if len(payload) < 9:
